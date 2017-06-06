@@ -1,4 +1,6 @@
 
+import tree
+import numpy
 import rocket
 import rocket.aux as parts
 
@@ -7,32 +9,16 @@ program = rocket.program('v.glsl', 'f.glsl')
 camera = parts.View(fov=45)
 world = parts.Mover()
 
-camera.move(z=-6)
+root = None
 
-
-class Tile:
-    def __init__(s, a, b, c, d, e, f, m):
-        s.a = a
-        s.b = b
-        s.c = c
-        s.d = d
-        s.e = e
-        s.f = f
-        s.m = m
-
-
-def buffers():
-    vertices = [
-        [-0.2, -0.2],
-        [+0.2, +0.2],
-        [0, 0],
-    ]
-    return vertices
+camera.move(z=-3)
 
 
 def main():
-    global world
-    world.vertices = buffers()
+    global world, root
+    root = tree.root()
+    root.subdivide()
+    world.vertices = root.buffers()
     rocket.prep()
     rocket.launch()
 
