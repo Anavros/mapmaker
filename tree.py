@@ -45,12 +45,6 @@ class Tile:
             'southwest': None,
             'center': None,
         }
-        # We need a more robust check.
-        # After we start marking neighbors.
-        # If a tile has no neighbor to the east or west, then don't bother with these corners.
-        if not root:
-            s.subtiles['eastcorner'] = None
-            s.subtiles['westcorner'] = None
 
         s.neighbors = {
             'north': None,
@@ -62,11 +56,11 @@ class Tile:
         }
         s.subdivided = False
         heightmap = {
-            1: (0.2, 0.4, 0.6),
-            2: (0.8, 0.4, 0.2),
-            3: (0.6, 0.3, 0.2),
-            4: (0.4, 0.2, 0.2),
-            5: (0.2, 0.1, 0.2),
+            1: (0.4, 0.6, 0.8),
+            2: (0.7, 0.5, 0.4),
+            3: (0.6, 0.4, 0.3),
+            4: (0.5, 0.3, 0.2),
+            5: (0.4, 0.2, 0.1),
         }
         s.height = random.choice(list(heightmap.keys()))
         s.height = min(5, max(1, s.height + height_bias - 3))
@@ -90,19 +84,55 @@ class Tile:
         nne = s.points['nne']
         c   = s.points['center']
 
-        s.subtiles['north'] = Tile(hex_in_south_facing_triangle(c, nne, nnw), height_bias=s.height)
-        s.subtiles['south'] = Tile(hex_in_north_facing_triangle(c, sse, ssw), height_bias=s.height)
+        s.subtiles['north']     = Tile(hex_in_south_facing_triangle(c, nne, nnw), height_bias=s.height)
+        s.subtiles['south']     = Tile(hex_in_north_facing_triangle(c, sse, ssw), height_bias=s.height)
         s.subtiles['northeast'] = Tile(hex_in_north_facing_triangle(nne, e, c), height_bias=s.height)
         s.subtiles['northwest'] = Tile(hex_in_north_facing_triangle(nnw, c, w), height_bias=s.height)
         s.subtiles['southeast'] = Tile(hex_in_south_facing_triangle(sse, e, c), height_bias=s.height)
         s.subtiles['southwest'] = Tile(hex_in_south_facing_triangle(ssw, c, w), height_bias=s.height)
-        s.subtiles['center'] = Tile(hex_in_center(e, sse, ssw, w, nnw, nne, c), height_bias=s.height)
+        s.subtiles['center']    = Tile(hex_in_center(e, sse, ssw, w, nnw, nne, c), height_bias=s.height)
 
-        if not s.root:
-            centerpoints = s.subtiles['center'].points
-            width = centerpoints['e'][0] - centerpoints['w'][0]
+        # We could use some better names.
+        n  = s.subtiles['north']
+        z  = s.subtiles['south']
+        ne = s.subtiles['northeast']
+        nw = s.subtiles['northwest']
+        se = s.subtiles['southeast']
+        sw = s.subtiles['southwest']
+        m  = s.subtiles['center']
+
+        # Connect neighbors too.
+        m.neighbors['north'] = n
+        m.neighbors['south'] = z
+        m.neighbors['northeast'] = ne
+        m.neighbors['northwest'] = nw
+        m.neighbors['southeast'] = se
+        m.neighbors['southwest'] = sw
+        n.neighbors['south'] = m
+        z.neighbors['north'] = m
+        ne.neighbors['southwest'] = m
+        nw.neighbors['southeast'] = m
+        se.neighbors['northwest'] = m
+        sw.neighbors['northeast'] = m
+
+        centerpoints = s.subtiles['center'].points
+        width = centerpoints['e'][0] - centerpoints['w'][0]
+        #if s.neighbors['northeast'] is not None or s.neighbors['southeast'] is not None:
+        if True:
             s.subtiles['eastcorner'] = Tile(shifted(centerpoints, x = width*1.5))
+            ec = s.subtiles['eastcorner']
+            ec.neighbors['northwest'] = ne
+            ec.neighbors['southwest'] = se
+            ne.neighbors['southeast'] = ec
+            se.neighbors['northeast'] = ec
+        #if s.neighbors['northwest'] is not None or s.neighbors['southwest'] is not None:
+        if True:
             s.subtiles['westcorner'] = Tile(shifted(centerpoints, x = -(width*1.5)))
+            wc = s.subtiles['westcorner']
+            wc.neighbors['northeast'] = nw
+            wc.neighbors['southeast'] = sw
+            nw.neighbors['southwest'] = wc
+            sw.neighbors['northwest'] = wc
 
         s.subdivided = True
 
@@ -111,7 +141,7 @@ class Tile:
         indices = []
         colors = []
         i = 0
-        scale = 0.05
+        scale = 0.02
         for tile in s.tiles_at_bottom_level():
             e, sse, ssw, w, nnw, nne, c, _e, _sse, _ssw, _w, _nnw, _nne, _c = [i+n for n in range(14)]
             vertices.append(tile.points['e']      + (0,))
