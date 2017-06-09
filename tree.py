@@ -1,17 +1,23 @@
 
 import numpy
 import random
+import math
 
 
-def root():
+def root(s=1.0):
+    w = s*2
+    h = math.sqrt(3) / 2 * w
+    a = s/2
+    b = h/2
+    z = 0.0
     return Tile({
-        'e':      ( 1.0,  0.0),
-        'sse':    ( 0.5, -1.0),
-        'ssw':    (-0.5, -1.0),
-        'w':      (-1.0,  0.0),
-        'nnw':    (-0.5,  1.0),
-        'nne':    ( 0.5,  1.0),
-        'center': ( 0.0,  0.0),
+        'e':      ( s,  z),
+        'sse':    ( a, -b),
+        'ssw':    (-a, -b),
+        'w':      (-s,  z),
+        'nnw':    (-a,  b),
+        'nne':    ( a,  b),
+        'center': ( z,  z),
     })
 
 
@@ -91,7 +97,7 @@ class Tile:
         indices = []
         colors = []
         i = 0
-        scale = 0.03
+        scale = 0.05
         for tile in s.tiles_at_bottom_level():
             e, sse, ssw, w, nnw, nne, c, _e, _sse, _ssw, _w, _nnw, _nne, _c = [i+n for n in range(14)]
             vertices.append(tile.points['e']      + (0,))
