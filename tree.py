@@ -1,6 +1,6 @@
 
-
 import numpy
+import random
 
 
 def root():
@@ -13,6 +13,7 @@ def root():
         'nne':    ( 0.5,  1.0),
         'center': ( 0.0,  0.0),
     })
+
 
 class Tile:
     def __init__(s, points=None):
@@ -47,9 +48,8 @@ class Tile:
             'southwest': None,
         }
         s.subdivided = False
-        s.height = 0
+        s.height = random.choice([1, 2, 3, 4, 5]) * 0.1
         s.color = numpy.random.random(3)
-        s.level = 0
 
     def subdivide(s):
         if any(p is None for p in s.points.values()):
@@ -85,13 +85,13 @@ class Tile:
         i = 0
         for tile in s.tiles_at_bottom_level():
             e, sse, ssw, w, nnw, nne, c = [i+n for n in range(7)]
-            vertices.append(tile.points['e'])
-            vertices.append(tile.points['sse'])
-            vertices.append(tile.points['ssw'])
-            vertices.append(tile.points['w'])
-            vertices.append(tile.points['nnw'])
-            vertices.append(tile.points['nne'])
-            vertices.append(tile.points['center'])
+            vertices.append(tile.points['e'] + (tile.height,))
+            vertices.append(tile.points['sse'] + (tile.height,))
+            vertices.append(tile.points['ssw'] + (tile.height,))
+            vertices.append(tile.points['w'] + (tile.height,))
+            vertices.append(tile.points['nnw'] + (tile.height,))
+            vertices.append(tile.points['nne'] + (tile.height,))
+            vertices.append(tile.points['center'] + (tile.height,))
             colors.extend([tile.color]*7)
             indices.extend([
                 e, sse, c,

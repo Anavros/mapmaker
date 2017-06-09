@@ -28,7 +28,7 @@ def main():
 @rocket.attach
 def draw():
     global world
-    program['xy'] = world.vertices
+    program['xyz'] = world.vertices
     program['color'] = world.colors
     program['model'] = world.transform
     program['view'] = camera.transform
@@ -51,6 +51,10 @@ def key_press(key):
         camera.move(z = -1)
     elif key == 'E':
         camera.move(z = +1)
+    elif key == 'F':
+        world.rotate(y=15)
+    elif key == 'R':
+        world.rotate(y=-15)
 
 
 if __name__ == '__main__':
