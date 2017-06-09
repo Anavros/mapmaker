@@ -1,5 +1,8 @@
 
 
+import numpy
+
+
 def root():
     return Tile({
         'e':      ( 1.0,  0.0),
@@ -45,12 +48,17 @@ class Tile:
         }
         s.subdivided = False
         s.height = 0
-        s.color = (0, 0, 0)
+        s.color = numpy.random.random(3)
         s.level = 0
 
     def subdivide(s):
         if any(p is None for p in s.points.values()):
             raise ValueError("Can not divide tile whose points have not been specified!")
+
+        if s.subdivided:
+            for subtile in s.subtiles.values():
+                subtile.subdivide()
+            return
 
         e   = s.points['e']
         sse = s.points['sse']
@@ -72,12 +80,37 @@ class Tile:
 
     def buffers(s):
         vertices = []
-        for p in s.points.values():
-            vertices.append(p)
+        indices = []
+        colors = []
+        i = 0
+        for tile in s.tiles_at_bottom_level():
+            e, sse, ssw, w, nnw, nne, c = [i+n for n in range(7)]
+            vertices.append(tile.points['e'])
+            vertices.append(tile.points['sse'])
+            vertices.append(tile.points['ssw'])
+            vertices.append(tile.points['w'])
+            vertices.append(tile.points['nnw'])
+            vertices.append(tile.points['nne'])
+            vertices.append(tile.points['center'])
+            colors.extend([tile.color]*7)
+            indices.extend([
+                e, sse, c,
+                sse, ssw, c,
+                ssw, w, c,
+                w, nnw, c,
+                nnw, nne, c,
+                nne, e, c,
+            ])
+            i += 7
+        return vertices, indices, colors
+
+    def tiles_at_bottom_level(s):
         if s.subdivided:
             for subtile in s.subtiles.values():
-                vertices.extend(subtile.buffers())
-        return vertices
+                for tile in subtile.tiles_at_bottom_level():
+                    yield tile
+        else:
+            yield s
 
 
 def hex_in_north_facing_triangle(n, e, w):

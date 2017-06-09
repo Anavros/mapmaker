@@ -3,6 +3,7 @@ import tree
 import numpy
 import rocket
 import rocket.aux as parts
+from vispy.gloo import IndexBuffer
 
 
 program = rocket.program('v.glsl', 'f.glsl')
@@ -18,7 +19,8 @@ def main():
     global world, root
     root = tree.root()
     root.subdivide()
-    world.vertices = root.buffers()
+    root.subdivide()
+    world.vertices, world.indices, world.colors = root.buffers()
     rocket.prep()
     rocket.launch()
 
@@ -27,10 +29,11 @@ def main():
 def draw():
     global world
     program['xy'] = world.vertices
+    program['color'] = world.colors
     program['model'] = world.transform
     program['view'] = camera.transform
     program['projection'] = camera.proj
-    program.draw('points')
+    program.draw('triangles', IndexBuffer(world.indices))
 
 
 @rocket.attach
