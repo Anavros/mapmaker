@@ -18,11 +18,11 @@ def root(s=1.0):
         'nnw':    (-a,  b),
         'nne':    ( a,  b),
         'center': ( z,  z),
-    })
+    }, root=True)
 
 
 class Tile:
-    def __init__(s, points=None, height_bias=0):
+    def __init__(s, points=None, height_bias=0, root=False):
         if points is None:
             s.points = {
                 'e': None,
@@ -45,6 +45,13 @@ class Tile:
             'southwest': None,
             'center': None,
         }
+        # We need a more robust check.
+        # After we start marking neighbors.
+        # If a tile has no neighbor to the east or west, then don't bother with these corners.
+        if not root:
+            s.subtiles['eastcorner'] = None
+            s.subtiles['westcorner'] = None
+
         s.neighbors = {
             'north': None,
             'northeast': None,
@@ -64,6 +71,7 @@ class Tile:
         s.height = random.choice(list(heightmap.keys()))
         s.height = min(5, max(1, s.height + height_bias - 3))
         s.color = heightmap[s.height]
+        s.root = root
 
     def subdivide(s):
         if any(p is None for p in s.points.values()):
@@ -89,6 +97,12 @@ class Tile:
         s.subtiles['southeast'] = Tile(hex_in_south_facing_triangle(sse, e, c), height_bias=s.height)
         s.subtiles['southwest'] = Tile(hex_in_south_facing_triangle(ssw, c, w), height_bias=s.height)
         s.subtiles['center'] = Tile(hex_in_center(e, sse, ssw, w, nnw, nne, c), height_bias=s.height)
+
+        if not s.root:
+            centerpoints = s.subtiles['center'].points
+            width = centerpoints['e'][0] - centerpoints['w'][0]
+            s.subtiles['eastcorner'] = Tile(shifted(centerpoints, x = width*1.5))
+            s.subtiles['westcorner'] = Tile(shifted(centerpoints, x = -(width*1.5)))
 
         s.subdivided = True
 
@@ -148,6 +162,33 @@ class Tile:
             i += 14
         return vertices, indices, colors
 
+    def flat_buffers(s):
+        vertices = []
+        indices = []
+        colors = []
+        i = 0
+        for tile in s.tiles_at_bottom_level():
+            e, sse, ssw, w, nnw, nne, c = [i+n for n in range(7)]
+            vertices.append(tile.points['e']      + (0,))
+            vertices.append(tile.points['sse']    + (0,))
+            vertices.append(tile.points['ssw']    + (0,))
+            vertices.append(tile.points['w']      + (0,))
+            vertices.append(tile.points['nnw']    + (0,))
+            vertices.append(tile.points['nne']    + (0,))
+            vertices.append(tile.points['center'] + (0,))
+            colors.extend([tile.color]*7)
+            indices.extend([
+                # Ground level.
+                e, sse, c,
+                sse, ssw, c,
+                ssw, w, c,
+                w, nnw, c,
+                nnw, nne, c,
+                nne, e, c,
+            ])
+            i += 7
+        return vertices, indices, colors
+
     def tiles_at_bottom_level(s):
         if s.subdivided:
             for subtile in s.subtiles.values():
@@ -155,6 +196,33 @@ class Tile:
                     yield tile
         else:
             yield s
+
+    def __contains__(s, point):
+        assert len(point) == 2
+        x, y = point
+        e   = s.points['e']
+        sse = s.points['sse']
+        ssw = s.points['ssw']
+        w   = s.points['w']
+        nnw = s.points['nnw']
+        nne = s.points['nne']
+        c   = s.points['center']
+        tests = [
+            w[0] <= x <= e[0],
+            sse[1] <= y <= nne[1],
+        ]
+        return all(tests)
+
+    def lowest_tile_at_point(s, point):
+        if point in s:
+            if s.subdivided:
+                for subtile in s.subtiles.values():
+                    if point in subtile:
+                        return subtile.lowest_tile_at_point(point)
+            else:
+                return s
+        else:
+            return None
 
 
 def hex_in_north_facing_triangle(n, e, w):
@@ -196,6 +264,30 @@ def hex_in_center(e, sse, ssw, w, nnw, nne, c):
     return points
 
 
+def shifted(points, x=0, y=0):
+    new_points = {}
+    for name, p in points.items():
+        px, py = p
+        new_points[name] = (px+x, py+y)
+    return new_points
+
+
+def hex_in_corner(e, c, sse, nne):
+    # This assumes a regular hexagon with no stretch.
+    # It also places the hex at the east corner.
+    d = distance(e, c)
+    s = d[0]/2
+    points = {}
+    points['center'] = e
+    points['w']      = thirdway(e, c)
+    points['nnw']    = thirdway(e, nne)
+    points['ssw']    = thirdway(e, sse)
+    points['e']      = (e[0] + s, e[1])
+    points['nne']    = (points['nnw'][0] + s, points['nnw'][1])
+    points['sse']    = (points['ssw'][0] + s, points['ssw'][1])
+    return points
+
+
 def thirdway(a, b):
     ax, ay = a
     bx, by = b
@@ -207,3 +299,19 @@ def centerpoint(*points):
     x = sum(p[0] for p in points)
     y = sum(p[1] for p in points)
     return x/n, y/n
+
+
+def distance(a, b):
+    ax, ay = a
+    bx, by = b
+    return abs(ax-bx), abs(ay-by)
+
+
+def duplicate_tile_check(root):
+    found = {}
+    for tile in root.tiles_at_bottom_level():
+        c = tile.points['center']
+        if c in found.keys():
+            return True
+        found[c] = True
+    return False
