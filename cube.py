@@ -14,6 +14,8 @@ world = parts.Mover()
 
 camera.move(z=-3)
 
+cm = None
+
 
 class Tile:
     # Using axial coordinates.
@@ -22,6 +24,10 @@ class Tile:
         self.r = r
         self.size = size
         self.height = random.choice([1, 2, 3])
+        self.color = numpy.random.random(3)
+
+        # Temporary for the game of life.
+        self.alive = random.choice([True, False])
 
     def __repr__(s):
         return "Tile({}, {})".format(s.q, s.r)
@@ -54,6 +60,21 @@ def cubemap(n, size):
                 if q+r+s == 0:
                     cm[q, r, s] = Tile(q, r, size=size)
     return cm
+
+
+def neighbors(cm, x, y, z):
+    """
+    Find the hexagons adjacent to this one.
+    """
+    #if (x, y, z) not in cm:
+        #return [None]*6
+    n  = cm.get((x, y+1, z-1), None)
+    s  = cm.get((x, y-1, z+1), None)
+    ne = cm.get((x+1, y, z-1), None)
+    nw = cm.get((x-1, y+1, z), None)
+    se = cm.get((x+1, y-1, z), None)
+    sw = cm.get((x-1, y, z+1), None)
+    return [n, s, ne, nw, se, sw]
 
 
 def buffers(cm, scale=1.0):
@@ -130,19 +151,56 @@ def buffers(cm, scale=1.0):
             ise, je, jse,
         ])
 
-        # Put a darker color towards the bottom to help features stand out.
-        colors.extend([(0.2, 0.4, 0.5)]*7)
-        colors.extend([(0.1, 0.3, 0.4)]*7)
+        colors.extend([tile.color]*7)
+        colors.extend([tile.color-0.2]*7)
         i += 14
     return vertices, indices, colors
 
 
 def main():
-    cm = cubemap(5, 0.2)
+    global cm
+    cm = cubemap(3, 0.1)
+    test_neighbors(cm, 0, 0, 0)
+    refresh()
+    rocket.prep(clear_color=(0.1, 0.1, 0.1))
+    rocket.launch(fps=12)
+
+
+def test_neighbors(cm, x, y, z):
+    cm[x, y, z].color = numpy.array((0, 0, 0))
+    for tile in neighbors(cm, x, y, z):
+        if tile:
+            tile.color = numpy.array((1, 1, 1))
+
+
+def test_cells():
+    global cm
+    for tile in cm.values():
+        others = neighbors(cm, *tile.cubal())
+        count = sum(1 for cell in others if (cell is not None) and cell.alive)
+
+        if tile.alive and (count not in [2, 3]):
+            tile.alive = False
+        elif (not tile.alive) and (count in [3, 4, 5, 6]):
+            tile.alive = True
+
+        if tile.alive:
+            tile.color = numpy.array((1, 1, 1))
+            tile.height = 2
+        else:
+            tile.color = numpy.array((0, 0, 0))
+            tile.height = 1
+        
+
+def refresh():
+    global cm, world
     world.vertices, world.indices, world.colors = buffers(cm, 0.8)
-    print(len(world.vertices), "vertices")
-    rocket.prep()
-    rocket.launch()
+
+
+#@rocket.attach
+def update():
+    test_cells()
+    refresh()
 
 
 @rocket.attach
