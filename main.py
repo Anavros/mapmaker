@@ -4,6 +4,7 @@ import numpy
 import rocket
 import rocket.aux as parts
 from vispy.gloo import IndexBuffer
+from uuid import uuid4
 
 
 program = rocket.program('v.glsl', 'f.glsl')
@@ -13,6 +14,7 @@ world = parts.Mover()
 root = None
 
 camera.move(z=-3)
+world.rotate(y=-60)
 
 
 def main():
@@ -55,6 +57,10 @@ def key_press(key):
         world.rotate(y=15)
     elif key == 'R':
         world.rotate(y=-15)
+    elif key == 'P':
+        path = "/home/john/media/pictures/{}.png".format(uuid4())
+        print("Saving screenshot to {}...".format(path))
+        rocket.screenshot(path)
 
 
 if __name__ == '__main__':

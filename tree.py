@@ -16,7 +16,7 @@ def root():
 
 
 class Tile:
-    def __init__(s, points=None):
+    def __init__(s, points=None, height_bias=0):
         if points is None:
             s.points = {
                 'e': None,
@@ -48,8 +48,16 @@ class Tile:
             'southwest': None,
         }
         s.subdivided = False
-        s.height = random.choice([1, 2, 3, 4, 5]) * 0.1
-        s.color = numpy.random.random(3)
+        heightmap = {
+            1: (0.2, 0.4, 0.6),
+            2: (0.8, 0.4, 0.2),
+            3: (0.6, 0.3, 0.2),
+            4: (0.4, 0.2, 0.2),
+            5: (0.2, 0.1, 0.2),
+        }
+        s.height = random.choice(list(heightmap.keys()))
+        s.height = min(5, max(1, s.height + height_bias - 3))
+        s.color = heightmap[s.height]
 
     def subdivide(s):
         if any(p is None for p in s.points.values()):
@@ -68,13 +76,13 @@ class Tile:
         nne = s.points['nne']
         c   = s.points['center']
 
-        s.subtiles['north'] = Tile(hex_in_south_facing_triangle(c, nne, nnw))
-        s.subtiles['south'] = Tile(hex_in_north_facing_triangle(c, sse, ssw))
-        s.subtiles['northeast'] = Tile(hex_in_north_facing_triangle(nne, e, c))
-        s.subtiles['northwest'] = Tile(hex_in_north_facing_triangle(nnw, c, w))
-        s.subtiles['southeast'] = Tile(hex_in_south_facing_triangle(sse, e, c))
-        s.subtiles['southwest'] = Tile(hex_in_south_facing_triangle(ssw, c, w))
-        s.subtiles['center'] = Tile(hex_in_center(e, sse, ssw, w, nnw, nne, c))
+        s.subtiles['north'] = Tile(hex_in_south_facing_triangle(c, nne, nnw), height_bias=s.height)
+        s.subtiles['south'] = Tile(hex_in_north_facing_triangle(c, sse, ssw), height_bias=s.height)
+        s.subtiles['northeast'] = Tile(hex_in_north_facing_triangle(nne, e, c), height_bias=s.height)
+        s.subtiles['northwest'] = Tile(hex_in_north_facing_triangle(nnw, c, w), height_bias=s.height)
+        s.subtiles['southeast'] = Tile(hex_in_south_facing_triangle(sse, e, c), height_bias=s.height)
+        s.subtiles['southwest'] = Tile(hex_in_south_facing_triangle(ssw, c, w), height_bias=s.height)
+        s.subtiles['center'] = Tile(hex_in_center(e, sse, ssw, w, nnw, nne, c), height_bias=s.height)
 
         s.subdivided = True
 
@@ -83,25 +91,55 @@ class Tile:
         indices = []
         colors = []
         i = 0
+        scale = 0.03
         for tile in s.tiles_at_bottom_level():
-            e, sse, ssw, w, nnw, nne, c = [i+n for n in range(7)]
-            vertices.append(tile.points['e'] + (tile.height,))
-            vertices.append(tile.points['sse'] + (tile.height,))
-            vertices.append(tile.points['ssw'] + (tile.height,))
-            vertices.append(tile.points['w'] + (tile.height,))
-            vertices.append(tile.points['nnw'] + (tile.height,))
-            vertices.append(tile.points['nne'] + (tile.height,))
-            vertices.append(tile.points['center'] + (tile.height,))
-            colors.extend([tile.color]*7)
+            e, sse, ssw, w, nnw, nne, c, _e, _sse, _ssw, _w, _nnw, _nne, _c = [i+n for n in range(14)]
+            vertices.append(tile.points['e']      + (0,))
+            vertices.append(tile.points['sse']    + (0,))
+            vertices.append(tile.points['ssw']    + (0,))
+            vertices.append(tile.points['w']      + (0,))
+            vertices.append(tile.points['nnw']    + (0,))
+            vertices.append(tile.points['nne']    + (0,))
+            vertices.append(tile.points['center'] + (0,))
+
+            vertices.append(tile.points['e']      + (tile.height*scale,))
+            vertices.append(tile.points['sse']    + (tile.height*scale,))
+            vertices.append(tile.points['ssw']    + (tile.height*scale,))
+            vertices.append(tile.points['w']      + (tile.height*scale,))
+            vertices.append(tile.points['nnw']    + (tile.height*scale,))
+            vertices.append(tile.points['nne']    + (tile.height*scale,))
+            vertices.append(tile.points['center'] + (tile.height*scale,))
+            colors.extend([tile.color]*14)
             indices.extend([
+                # Ground level.
                 e, sse, c,
                 sse, ssw, c,
                 ssw, w, c,
                 w, nnw, c,
                 nnw, nne, c,
                 nne, e, c,
+                # Raised.
+                _e, _sse, _c,
+                _sse, _ssw, _c,
+                _ssw, _w, _c,
+                _w, _nnw, _c,
+                _nnw, _nne, _c,
+                _nne, _e, _c,
+                # Walls.
+                e, sse, _sse,
+                e, _sse, _e,
+                sse, ssw, _ssw,
+                sse, _ssw, _sse,
+                ssw, w, _w,
+                ssw, _w, _ssw,
+                w, nnw, _nnw,
+                w, _nnw, _w,
+                nnw, nne, _nne,
+                nnw, _nne, _nnw,
+                nne, e, _e,
+                nne, _e, _nne,
             ])
-            i += 7
+            i += 14
         return vertices, indices, colors
 
     def tiles_at_bottom_level(s):
