@@ -12,6 +12,7 @@ class Tile:
         self.size = size
         self.height = random.choice([1, 2, 3])
         self.color = numpy.random.random(3)
+        self.highlight = False
 
         # Temporary for the game of life.
         self.alive = random.choice([True, False])
@@ -36,6 +37,9 @@ class Tile:
         y = s.size * math.sqrt(3) * (s.r + s.q/2)
         z = s.size * s.height
         return (x, y, z)
+
+    def set_color(s, color):
+        s.color = numpy.array(color)
 
 
 def cubemap(n, size):
@@ -142,6 +146,7 @@ def buffers(cm, scale=1.0):
         colors.extend([tile.color-0.2]*7)
         i += 14
     return vertices, indices, colors
+
 
 def test_neighbors(cm, x, y, z):
     cm[x, y, z].color = numpy.array((0, 0, 0))

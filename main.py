@@ -11,10 +11,8 @@ import cubemap
 
 
 program = rocket.program('v.glsl', 'f.glsl')
-camera = parts.View(fov=20, near=0.1)
+camera = control.Camera()
 world = parts.Mover()
-
-camera.move(z=-3)
 
 cm = None
 
@@ -46,9 +44,9 @@ def draw():
 
 @rocket.attach
 def key_press(key):
-    global camera, world
-    control.free_movement(camera, world, key)
-    #control.locked_movement(camera, world, key)
+    global camera, world, cm
+    #control.free_movement(camera, world, key)
+    control.move_by_tile(camera, cm, key, refresh)
 
 
 if __name__ == '__main__':
