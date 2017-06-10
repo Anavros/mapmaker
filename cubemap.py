@@ -64,6 +64,8 @@ class Tile:
 class World:
     def __init__(self, n, size):
         self.tiles = generate(n, size)
+        self.n = n
+        self.size = size
         self.q = 0
         self.r = 0
         self.s = 0
@@ -86,23 +88,29 @@ class World:
     # TODO: prevent moving outside the boundaries of the map.
     def move(self, direction):
         if direction == 'north':
-            self.s -= 1
-            self.r += 1
+            if self.s-1 >= -self.n and self.r+1 <= self.n:
+                self.s -= 1
+                self.r += 1
         elif direction == 'south':
-            self.s += 1
-            self.r -= 1
+            if self.r-1 >= -self.n and self.s+1 <= self.n:
+                self.s += 1
+                self.r -= 1
         elif direction == 'northeast':
-            self.q += 1
-            self.s -= 1
+            if self.s-1 >= -self.n and self.q+1 <= self.n:
+                self.q += 1
+                self.s -= 1
         elif direction == 'northwest':
-            self.q -= 1
-            self.r += 1
+            if self.q-1 >= -self.n and self.r+1 <= self.n:
+                self.q -= 1
+                self.r += 1
         elif direction == 'southeast':
-            self.r -= 1
-            self.q += 1
+            if self.r-1 >= -self.n and self.q+1 <= self.n:
+                self.r -= 1
+                self.q += 1
         elif direction == 'southwest':
-            self.s += 1
-            self.q -= 1
+            if self.q-1 >= -self.n and self.s+1 <= self.n:
+                self.s += 1
+                self.q -= 1
         else:
             raise ValueError("Unknown movement direction: '{}'.".format(direction))
 
@@ -197,9 +205,9 @@ def buffers(cm, scale=1.0, highlights=None):
             ise, je, jse,
         ])
 
-        coords = tile.cubal()
-        if coords in highlights:
-            colors.extend([(1, 1, 1)]*14)
+        if tile.cubal() in highlights:
+            colors.extend([tile.color+0.1]*7)
+            colors.extend([tile.color+0.3]*7)
         else:
             colors.extend([tile.color]*7)
             colors.extend([tile.color-0.2]*7)
