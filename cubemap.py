@@ -56,7 +56,53 @@ class Tile:
         self.set_color(self.colormap[self.height])
 
 
-def cubemap(n, size):
+class World:
+    def __init__(self, n, size):
+        self.tiles = generate(n, size)
+        self.q = 0
+        self.r = 0
+        self.s = 0
+
+    def neighbors(self, x, y, z):
+        """
+        Find the hexagons adjacent to this one. Uses None where tiles are not found.
+        """
+        n  = self.tiles.get((x, y+1, z-1), None)
+        s  = self.tiles.get((x, y-1, z+1), None)
+        ne = self.tiles.get((x+1, y, z-1), None)
+        nw = self.tiles.get((x-1, y+1, z), None)
+        se = self.tiles.get((x+1, y-1, z), None)
+        sw = self.tiles.get((x-1, y, z+1), None)
+        return [n, s, ne, nw, se, sw]
+
+    def get_current_tile(self):
+        return self.tiles.get((self.q, self.r, self.s), None)
+
+    # TODO: prevent moving outside the boundaries of the map.
+    def move(self, direction):
+        if direction == 'north':
+            self.s -= 1
+            self.r += 1
+        elif direction == 'south':
+            self.s += 1
+            self.r -= 1
+        elif direction == 'northeast':
+            self.q += 1
+            self.s -= 1
+        elif direction == 'northwest':
+            self.q -= 1
+            self.r += 1
+        elif direction == 'southeast':
+            self.r -= 1
+            self.q += 1
+        elif direction == 'southwest':
+            self.s += 1
+            self.q -= 1
+        else:
+            raise ValueError("Unknown movement direction: '{}'.".format(direction))
+
+
+def generate(n, size):
     # There's got to be a better way to do this.
     cm = {}
     for q in range(-n, n+1):
@@ -65,21 +111,6 @@ def cubemap(n, size):
                 if q+r+s == 0:
                     cm[q, r, s] = Tile(q, r, size=size)
     return cm
-
-
-def neighbors(cm, x, y, z):
-    """
-    Find the hexagons adjacent to this one.
-    """
-    #if (x, y, z) not in cm:
-        #return [None]*6
-    n  = cm.get((x, y+1, z-1), None)
-    s  = cm.get((x, y-1, z+1), None)
-    ne = cm.get((x+1, y, z-1), None)
-    nw = cm.get((x-1, y+1, z), None)
-    se = cm.get((x+1, y-1, z), None)
-    sw = cm.get((x-1, y, z+1), None)
-    return [n, s, ne, nw, se, sw]
 
 
 def buffers(cm, scale=1.0):

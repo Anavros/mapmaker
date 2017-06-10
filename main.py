@@ -1,52 +1,53 @@
 
-import numpy
-import random
-import math
 import rocket
 import rocket.aux as parts
-from vispy.gloo import IndexBuffer
 
 import control
 import cubemap
+import graphics
 
 
-program = rocket.program('v.glsl', 'f.glsl')
-camera = control.Camera()
-world = parts.Mover()
+class Application:
+    def __init__(self):
+        self.camera = control.Camera()
+        self.mesh = parts.Mover()
+        self.world = cubemap.World(14, 0.03)
+        self.refresh_mesh()
 
-cm = None
+    def refresh_mesh(s):
+        s.mesh.vertices, s.mesh.indices, s.mesh.colors = cubemap.buffers(s.world.tiles)
+
+
+app = None
 
 
 def main():
-    global cm
-    cm = cubemap.cubemap(14, 0.03)
-    refresh()
+    global app
+    app = Application()
     rocket.prep(clear_color=(0.1, 0.1, 0.1))
     rocket.launch(fps=12)
 
 
-def refresh():
-    global cm, world
-    world.vertices, world.indices, world.colors = cubemap.buffers(cm, 1.0)
-
-
 @rocket.attach
 def draw():
-    global world, program
-    program['xyz'] = world.vertices
-    program['color'] = world.colors
-    program['model'] = world.transform
-    program['view'] = camera.transform
-    program['projection'] = camera.proj
-    #program.draw('points')
-    program.draw('triangles', IndexBuffer(world.indices))
+    global app
+    graphics.render(app.mesh, app.camera.view)
 
 
 @rocket.attach
 def key_press(key):
-    global camera, world, cm
-    #control.free_movement(camera, world, key)
-    control.move_by_tile(camera, world, cm, key, refresh)
+    global app
+    if key == '':
+        return
+    elif key in 'QWEASDJK':
+        control.move_by_tile(app.camera, app.world, key)
+        # TODO: don't always refresh unless needed
+        app.refresh_mesh()
+    elif key in 'RF':
+        if key == 'R':
+            control.tilt_camera(app.camera, 'up')
+        elif key == 'F':
+            control.tilt_camera(app.camera, 'down')
 
 
 if __name__ == '__main__':
