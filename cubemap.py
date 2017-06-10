@@ -35,9 +35,12 @@ class Tile:
         return s.q, s.r
 
     def cubal(s):
+        # This doesn't work right?
+        # Or the tile coordinates are not being set right.
+        # These don't match the map indices.
         x = s.q
-        z = s.r
-        y = -x - z
+        y = s.r
+        z = -x - y
         return x, y, z
 
     def pixel(s):
@@ -115,7 +118,12 @@ def generate(n, size):
     return cm
 
 
-def buffers(cm, scale=1.0):
+def buffers(cm, scale=1.0, highlights=None):
+    # This is most likely temporary.
+    # So we can show what tile the camera is looking at more clearly.
+    if highlights is None:
+        highlights = []
+
     vertices = []
     indices = []
     colors = []
@@ -189,7 +197,8 @@ def buffers(cm, scale=1.0):
             ise, je, jse,
         ])
 
-        if tile.highlight:
+        coords = tile.cubal()
+        if coords in highlights:
             colors.extend([(1, 1, 1)]*14)
         else:
             colors.extend([tile.color]*7)

@@ -38,11 +38,11 @@ class Camera():
 def move_by_tile(camera, world, key):
     if key in "QWEASD":
         # This changes the direction of the movement to match where the camera is facing.
+        # TODO: isolate
         directions = list("WEDSAQ")
         index = directions.index(key)
         offset = camera.rotation
         result = directions[(index+offset)%6]
-        print("Rotation {}: {} -> {}".format(offset, key, result))
         mapping = {
             'W': 'north',
             'E': 'northeast',

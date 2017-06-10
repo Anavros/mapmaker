@@ -15,7 +15,9 @@ class Application:
         self.refresh_mesh()
 
     def refresh_mesh(s):
-        s.mesh.vertices, s.mesh.indices, s.mesh.colors = cubemap.buffers(s.world.tiles)
+        focus = (s.world.q, s.world.r, s.world.s)
+        highs = [focus]
+        s.mesh.vertices, s.mesh.indices, s.mesh.colors = cubemap.buffers(s.world.tiles, highlights=highs)
 
 
 app = None
@@ -42,6 +44,9 @@ def key_press(key):
     elif key in 'QWEASDJK':
         control.move_by_tile(app.camera, app.world, key)
         # TODO: don't always refresh unless needed
+        # Although it might always be needed if we're moving a highlight around.
+        # What we really need is a selective rerendering method.
+        # But that's an optimization for later.
         app.refresh_mesh()
     elif key in 'RF':
         if key == 'R':
