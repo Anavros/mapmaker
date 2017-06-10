@@ -58,6 +58,11 @@ def key_press(key):
             app.camera.rotate(-1)
         if key == 'O':
             app.camera.rotate(+1)
+    elif key in 'GT':
+        if key == 'G':
+            app.camera.zoom(+1)
+        if key == 'T':
+            app.camera.zoom(-1)
 
 
 if __name__ == '__main__':

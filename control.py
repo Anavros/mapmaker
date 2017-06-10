@@ -12,6 +12,7 @@ class Camera():
         self.angle = 30
         self.rotation = 0
         self.height = 1
+        self.distance = 0
         self.refresh()
 
     def tilt(self, n):
@@ -21,6 +22,10 @@ class Camera():
     def jump(self, x, y):
         self.x = x
         self.y = y
+        self.refresh()
+
+    def zoom(self, n):
+        self.distance = max(0, min(5, self.distance+n))
         self.refresh()
 
     def rotate(self, n):
@@ -33,6 +38,7 @@ class Camera():
         self.view.move(-self.x, -self.y, -self.height, absolute=True)
         self.view.rotate(y = -self.angle)
         self.view.move(y = self.angle/60)
+        self.view.move(z = -(self.distance/5))
 
 
 def move_by_tile(camera, world, key):
