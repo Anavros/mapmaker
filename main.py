@@ -50,9 +50,9 @@ def key_press(key):
             app.camera.tilt(+15)
     elif key in 'IO':
         if key == 'I':
-            app.camera.rotate(-60)
+            app.camera.rotate(-1)
         if key == 'O':
-            app.camera.rotate(+60)
+            app.camera.rotate(+1)
 
 
 if __name__ == '__main__':

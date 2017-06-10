@@ -24,28 +24,34 @@ class Camera():
         self.refresh()
 
     def rotate(self, n):
-        self.rotation = (self.rotation + n) % 360
+        self.rotation = (self.rotation + n) % 6
         self.refresh()
 
     def refresh(self):
         self.view.reset()
-        self.view.rotate(z = self.rotation)
+        self.view.rotate(z = self.rotation*60)
         self.view.move(-self.x, -self.y, -self.height, absolute=True)
-        #self.view.rotate(y = -self.angle)
-        #self.view.move(y = self.angle/60)
+        self.view.rotate(y = -self.angle)
+        self.view.move(y = self.angle/60)
 
 
 def move_by_tile(camera, world, key):
-    if key in "WSEQDA":
+    if key in "QWEASD":
+        # This changes the direction of the movement to match where the camera is facing.
+        directions = list("WEDSAQ")
+        index = directions.index(key)
+        offset = camera.rotation
+        result = directions[(index+offset)%6]
+        print("Rotation {}: {} -> {}".format(offset, key, result))
         mapping = {
             'W': 'north',
-            'S': 'south',
             'E': 'northeast',
             'Q': 'northwest',
+            'S': 'south',
             'D': 'southeast',
             'A': 'southwest',
         }
-        world.move(mapping[key])
+        world.move(mapping[result])
         tile = world.get_current_tile()
         if tile is not None:
             x, y, z = tile.pixel()
