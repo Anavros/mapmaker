@@ -45,9 +45,14 @@ def key_press(key):
         app.refresh_mesh()
     elif key in 'RF':
         if key == 'R':
-            control.tilt_camera(app.camera, 'up')
+            app.camera.tilt(-15)
         elif key == 'F':
-            control.tilt_camera(app.camera, 'down')
+            app.camera.tilt(+15)
+    elif key in 'IO':
+        if key == 'I':
+            app.camera.rotate(-60)
+        if key == 'O':
+            app.camera.rotate(+60)
 
 
 if __name__ == '__main__':

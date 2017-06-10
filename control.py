@@ -9,13 +9,13 @@ class Camera():
         self.view = parts.View(fov=30, near=0.1)
         self.x = 0
         self.y = 0
-        self.tilt = 30
-        #self.rotation = 15
+        self.angle = 30
+        self.rotation = 0
         self.height = 1
         self.refresh()
 
     def tilt(self, n):
-        self.tilt = max(0, min(45, self.tilt+n))
+        self.angle = max(0, min(30, self.angle+n))
         self.refresh()
 
     def jump(self, x, y):
@@ -23,24 +23,20 @@ class Camera():
         self.y = y
         self.refresh()
 
+    def rotate(self, n):
+        self.rotation = (self.rotation + n) % 360
+        self.refresh()
+
     def refresh(self):
         self.view.reset()
-        self.view.move(-self.x, -self.y, -self.height)
-        self.view.rotate(y = -self.tilt)
-        self.view.move(y = self.tilt/60)
-
-
-def tilt_camera(camera, direction):
-    if direction == 'up':
-        camera.tilt(-15)
-    elif direction == 'down':
-        camera.tilt(+15)
-    else:
-        raise ValueError("Unknown camera tilt direction: '{}'.".format(direction))
+        self.view.rotate(z = self.rotation)
+        self.view.move(-self.x, -self.y, -self.height, absolute=True)
+        #self.view.rotate(y = -self.angle)
+        #self.view.move(y = self.angle/60)
 
 
 def move_by_tile(camera, world, key):
-    if key in "WSADQE":
+    if key in "WSEQDA":
         mapping = {
             'W': 'north',
             'S': 'south',

@@ -10,11 +10,13 @@ class Tile:
         self.q = q
         self.r = r
         self.size = size
-        self.height = random.choice([1, 2, 3])
+        self.height = random.choice([1]*10 + [2]*5 + [3, 4, 5])
         self.colormap = {
             1 : (0.2, 0.4, 0.6),
             2 : (0.8, 0.6, 0.4),
-            3 : (0.6, 0.4, 0.2),
+            3 : (0.7, 0.5, 0.3),
+            4 : (0.6, 0.4, 0.2),
+            5 : (0.5, 0.3, 0.1),
         }
         #self.color = numpy.random.random(3)
         self.set_color(self.colormap[self.height])
@@ -48,7 +50,7 @@ class Tile:
         s.color = numpy.array(color)
 
     def up(self):
-        self.height = min(3, self.height + 1)
+        self.height = min(5, self.height + 1)
         self.set_color(self.colormap[self.height])
 
     def down(self):
