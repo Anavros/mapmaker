@@ -42,7 +42,7 @@ def free_movement(camera, world, key, t=0.1, r=15):
         rocket.screenshot(path)
 
 
-def move_by_tile(camera, cubemap, key, refresh):
+def move_by_tile(camera, world, cubemap, key, refresh):
     if key in "WSADQE":
         if key == 'W':
             camera.s -= 1
@@ -68,26 +68,43 @@ def move_by_tile(camera, cubemap, key, refresh):
             return
         x, y, z = tile.pixel()
         jump_to_world_coordinate(camera, x, y)
+
+    elif key in "IO":
+        if key == 'I':
+            # There are going to be some problems to work out with the rotation.
+            # Basically we need to rotate the camera around the current tile.
+            # And we need to rotate the controls as well.
+            camera.rotation = (camera.rotation - 15) % 360
+        if key == 'O':
+            camera.rotation = (camera.rotation + 15) % 360
+        world.reset()
+        world.rotate(z = camera.rotation)
+        refresh()
+
     elif key in "JK":
         try:
             tile = cubemap[camera.q, camera.r, camera.s]
         except KeyError:
             return
         if key == 'J':
-            tile.set_color((1, 1, 1))
-            refresh()
+            tile.down()
+        elif key == 'K':
+            tile.up()
+        refresh()
 
 
 class Camera(parts.View):
     def __init__(self):
-        parts.View.__init__(self, fov=20, near=0.1)
+        parts.View.__init__(self, fov=30, near=0.1)
         self.q = 0
         self.r = 0
         self.s = 0
-        self.tilt = 0
+        self.tilt = 30
+        self.rotation = 15
         self.height = 1
         self.set()
 
     def set(self):
         self.move(z = -self.height)
         self.rotate(y = -self.tilt)
+        self.move(y = self.tilt/60)

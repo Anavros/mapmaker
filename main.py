@@ -27,7 +27,7 @@ def main():
 
 def refresh():
     global cm, world
-    world.vertices, world.indices, world.colors = cubemap.buffers(cm, 0.8)
+    world.vertices, world.indices, world.colors = cubemap.buffers(cm, 1.0)
 
 
 @rocket.attach
@@ -46,7 +46,7 @@ def draw():
 def key_press(key):
     global camera, world, cm
     #control.free_movement(camera, world, key)
-    control.move_by_tile(camera, cm, key, refresh)
+    control.move_by_tile(camera, world, cm, key, refresh)
 
 
 if __name__ == '__main__':

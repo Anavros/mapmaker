@@ -11,7 +11,13 @@ class Tile:
         self.r = r
         self.size = size
         self.height = random.choice([1, 2, 3])
-        self.color = numpy.random.random(3)
+        self.colormap = {
+            1 : (0.2, 0.4, 0.6),
+            2 : (0.8, 0.6, 0.4),
+            3 : (0.6, 0.4, 0.2),
+        }
+        #self.color = numpy.random.random(3)
+        self.set_color(self.colormap[self.height])
         self.highlight = False
 
         # Temporary for the game of life.
@@ -40,6 +46,14 @@ class Tile:
 
     def set_color(s, color):
         s.color = numpy.array(color)
+
+    def up(self):
+        self.height = min(3, self.height + 1)
+        self.set_color(self.colormap[self.height])
+
+    def down(self):
+        self.height = max(1, self.height - 1)
+        self.set_color(self.colormap[self.height])
 
 
 def cubemap(n, size):
@@ -142,8 +156,11 @@ def buffers(cm, scale=1.0):
             ise, je, jse,
         ])
 
-        colors.extend([tile.color]*7)
-        colors.extend([tile.color-0.2]*7)
+        if tile.highlight:
+            colors.extend([(1, 1, 1)]*14)
+        else:
+            colors.extend([tile.color]*7)
+            colors.extend([tile.color-0.2]*7)
         i += 14
     return vertices, indices, colors
 
