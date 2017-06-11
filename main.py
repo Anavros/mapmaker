@@ -20,8 +20,9 @@ class Application:
         self.most_recent_event = time.time()
 
     def refresh_mesh(s):
-        focus = (s.world.q, s.world.r, s.world.s)
-        highs = [focus]
+        #focus = (s.world.q, s.world.r, s.world.s)
+        #highs = [focus]
+        highs = [tile.cubal() for tile in s.world.get_all_selected_tiles()]
         s.mesh.vertices, s.mesh.indices, s.mesh.colors = cubemap.buffers(s.world.tiles, highlights=highs)
 
 
@@ -47,7 +48,9 @@ def draw():
 @rocket.attach
 def key_press(key):
     global app
-    #control.handle_key_events(app, key)
+    if key == '':
+        return
+    control.single_event(app, key)
 
 
 @rocket.attach
@@ -59,7 +62,9 @@ def key_hold(keys):
     if now - app.most_recent_event > 0.1:
         app.most_recent_event = now
         for key in keys:
-            control.handle_key_events(app, key)
+            if key == '':
+                continue
+            control.repeating_event(app, key)
 
 
 if __name__ == '__main__':

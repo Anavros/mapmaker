@@ -42,16 +42,9 @@ class Camera():
         self.view.move(z = -(self.distance/5))
 
 
-# Improve key names so you can distinguish between upper and lower, and other keys.
-def handle_key_events(app, key):
-    if key == '':
-        return
-    elif key in 'QWEASDJK':
+def repeating_event(app, key):
+    if key in 'QWEASDJK':
         move_by_tile(app.camera, app.world, key)
-        # TODO: don't always refresh unless needed
-        # Although it might always be needed if we're moving a highlight around.
-        # What we really need is a selective rerendering method.
-        # But that's an optimization for later.
         app.refresh_mesh()
     elif key in 'RFIOGT':
         if key == 'R':
@@ -66,38 +59,58 @@ def handle_key_events(app, key):
             app.camera.zoom(+1)
         elif key == 'T':
             app.camera.zoom(-1)
-    elif key == 'P':
+
+
+def single_event(app, key):
+    if key == 'P':
         utilities.screenshot_sequence()
     elif key == 'B':
         pickle.dump(app, open('world.pickle', 'wb'))
+    elif key == 'M':
+        app.world.select_current_tile()
+    elif key == 'N':
+        app.world.clear_selections()
+        app.refresh_mesh()
+    elif key == 'L':
+        app.world.select_neighbors()
+        app.refresh_mesh()
+
+
+def select_camera_relative_movement_direction(key, rotation):
+    """
+    Convert a keypress into a compass direction, adjusting for camera rotation.
+    So pressing 'w' will move up, regardless of where the camera is facing,
+    whether up is north, south, or whatever.
+    """
+    directions = list("WEDSAQ")
+    assert key in directions
+    index = directions.index(key)
+    result = directions[(index+rotation)%6]
+    mapping = {
+        'W': 'north',
+        'E': 'northeast',
+        'Q': 'northwest',
+        'S': 'south',
+        'D': 'southeast',
+        'A': 'southwest',
+    }
+    return mapping[result]
 
 
 def move_by_tile(camera, world, key):
     if key in "QWEASD":
-        # This changes the direction of the movement to match where the camera is facing.
-        # TODO: isolate
-        directions = list("WEDSAQ")
-        index = directions.index(key)
-        offset = camera.rotation
-        result = directions[(index+offset)%6]
-        mapping = {
-            'W': 'north',
-            'E': 'northeast',
-            'Q': 'northwest',
-            'S': 'south',
-            'D': 'southeast',
-            'A': 'southwest',
-        }
-        world.move(mapping[result])
+        direction = select_camera_relative_movement_direction(key, camera.rotation)
+        world.move(direction)
+        world.move_selections(direction)
         tile = world.get_current_tile()
         if tile is not None:
             x, y, z = tile.pixel()
             camera.jump(x, y)
 
     elif key in "JK":
-        tile = world.get_current_tile()
-        if tile is not None:
-            if key == 'J':
-                tile.down()
-            elif key == 'K':
-                tile.up()
+        for tile in world.get_all_selected_tiles():
+            if tile is not None:
+                if key == 'J':
+                    tile.down()
+                elif key == 'K':
+                    tile.up()

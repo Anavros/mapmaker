@@ -10,7 +10,7 @@ class Tile:
         self.q = q
         self.r = r
         self.size = size
-        self.height = random.choice([1]*10 + [2]*5 + [3, 4, 5])
+        self.height = random.choice([1, 2, 3])
         self.colormap = {
             1 : (0.2, 0.4, 0.6),
             2 : (0.8, 0.6, 0.4),
@@ -69,11 +69,16 @@ class World:
         self.q = 0
         self.r = 0
         self.s = 0
+        self.radius = 1
+        self.selections = []
 
-    def neighbors(self, x, y, z):
+    def neighbors(self):
         """
         Find the hexagons adjacent to this one. Uses None where tiles are not found.
         """
+        x = self.q
+        y = self.r
+        z = self.s
         n  = self.tiles.get((x, y+1, z-1), None)
         s  = self.tiles.get((x, y-1, z+1), None)
         ne = self.tiles.get((x+1, y, z-1), None)
@@ -85,7 +90,61 @@ class World:
     def get_current_tile(self):
         return self.tiles.get((self.q, self.r, self.s), None)
 
-    # TODO: prevent moving outside the boundaries of the map.
+    def get_all_selected_tiles(self):
+        tiles = [self.get_current_tile()]
+        for key in self.selections:
+            tile = self.tiles.get(key, None)
+            if tile is not None:
+                tiles.append(tile)
+        return tiles
+
+    def select_current_tile(self):
+        current = (self.q, self.r, self.s)
+        if current in self.selections:
+            self.selections.remove(current)
+        else:
+            self.selections.append(current)
+
+    def clear_selections(self):
+        self.selections = []
+
+    def select_neighbors(self):
+        for tile in self.neighbors():
+            if tile is not None:
+                self.selections.append(tile.cubal())
+
+    def move_selections(self, direction):
+        new_selections = []
+        for key in self.selections:
+            q, r, s = key
+            if direction == 'north':
+                if s-1 >= -self.n and r+1 <= self.n:
+                    s -= 1
+                    r += 1
+            elif direction == 'south':
+                if r-1 >= -self.n and s+1 <= self.n:
+                    s += 1
+                    r -= 1
+            elif direction == 'northeast':
+                if s-1 >= -self.n and q+1 <= self.n:
+                    q += 1
+                    s -= 1
+            elif direction == 'northwest':
+                if q-1 >= -self.n and r+1 <= self.n:
+                    q -= 1
+                    r += 1
+            elif direction == 'southeast':
+                if r-1 >= -self.n and q+1 <= self.n:
+                    r -= 1
+                    q += 1
+            elif direction == 'southwest':
+                if q-1 >= -self.n and s+1 <= self.n:
+                    s += 1
+                    q -= 1
+            # TODO: remove extra selections if they go off the edge.
+            new_selections.append((q, r, s))
+        self.selections = new_selections
+            
     def move(self, direction):
         if direction == 'north':
             if self.s-1 >= -self.n and self.r+1 <= self.n:
@@ -113,6 +172,15 @@ class World:
                 self.q -= 1
         else:
             raise ValueError("Unknown movement direction: '{}'.".format(direction))
+
+
+class Selection:
+    def __init__(self):
+        self.q = 0
+        self.r = 0
+        self.s = 0
+        self.radius = 0
+        self.selections = []
 
 
 def generate(n, size):
