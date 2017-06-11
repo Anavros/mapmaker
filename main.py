@@ -2,9 +2,13 @@
 import rocket
 import rocket.aux as parts
 
+import time
+import pickle
+
 import control
 import cubemap
 import graphics
+import utilities
 
 
 class Application:
@@ -13,6 +17,7 @@ class Application:
         self.mesh = parts.Mover()
         self.world = cubemap.World(14, 0.03)
         self.refresh_mesh()
+        self.most_recent_event = time.time()
 
     def refresh_mesh(s):
         focus = (s.world.q, s.world.r, s.world.s)
@@ -23,11 +28,14 @@ class Application:
 app = None
 
 
-def main():
+def main(args):
     global app
-    app = Application()
+    if args.pickle:
+        app = pickle.load(open(args.pickle, 'rb'))
+    else:
+        app = Application()
     rocket.prep(clear_color=(0.1, 0.1, 0.1))
-    rocket.launch(fps=12)
+    rocket.launch(fps=60)
 
 
 @rocket.attach
@@ -39,31 +47,23 @@ def draw():
 @rocket.attach
 def key_press(key):
     global app
-    if key == '':
-        return
-    elif key in 'QWEASDJK':
-        control.move_by_tile(app.camera, app.world, key)
-        # TODO: don't always refresh unless needed
-        # Although it might always be needed if we're moving a highlight around.
-        # What we really need is a selective rerendering method.
-        # But that's an optimization for later.
-        app.refresh_mesh()
-    elif key in 'RF':
-        if key == 'R':
-            app.camera.tilt(-15)
-        elif key == 'F':
-            app.camera.tilt(+15)
-    elif key in 'IO':
-        if key == 'I':
-            app.camera.rotate(-1)
-        if key == 'O':
-            app.camera.rotate(+1)
-    elif key in 'GT':
-        if key == 'G':
-            app.camera.zoom(+1)
-        if key == 'T':
-            app.camera.zoom(-1)
+    #control.handle_key_events(app, key)
+
+
+@rocket.attach
+def key_hold(keys):
+    # We need to limit how many times this is called per second.
+    global app
+    now = time.time()
+    # Ten events per second, regardless of framerate.
+    if now - app.most_recent_event > 0.1:
+        app.most_recent_event = now
+        for key in keys:
+            control.handle_key_events(app, key)
 
 
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pickle", nargs='?')
+    main(parser.parse_args())
