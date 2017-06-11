@@ -69,7 +69,7 @@ class World:
         self.q = 0
         self.r = 0
         self.s = 0
-        self.radius = 1
+        self.radius = 0
         self.selections = []
 
     def neighbors(self):
@@ -94,7 +94,7 @@ class World:
         tiles = [self.get_current_tile()]
         for key in self.selections:
             tile = self.tiles.get(key, None)
-            if tile is not None:
+            if tile is not None and tile not in tiles:
                 tiles.append(tile)
         return tiles
 
@@ -107,11 +107,26 @@ class World:
 
     def clear_selections(self):
         self.selections = []
+        self.radius = 0
 
-    def select_neighbors(self):
-        for tile in self.neighbors():
-            if tile is not None:
-                self.selections.append(tile.cubal())
+    def expand_selection(self):
+        self.radius = min(16, self.radius + 1)
+        self.select_within_radius()
+
+    def contract_selection(self):
+        self.radius = max(0, self.radius - 1)
+        self.select_within_radius()
+
+    def select_within_radius(self):
+        n = self.radius
+        # This will clear any arbitrarily selected tiles too.
+        self.selections = []
+        for tile in self.tiles.values():
+            q, r, s = tile.cubal()
+            already_included = (q, r, s) in self.selections
+            nearby = abs(self.q - q) <= n and abs(self.r - r) <= n and abs(self.s - s) <= n
+            if nearby and not already_included:
+                self.selections.append((q, r, s))
 
     def move_selections(self, direction):
         new_selections = []

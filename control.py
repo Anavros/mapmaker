@@ -17,7 +17,7 @@ class Camera():
         self.refresh()
 
     def tilt(self, n):
-        self.angle = max(0, min(30, self.angle+n))
+        self.angle = max(0, min(45, self.angle+n))
         self.refresh()
 
     def jump(self, x, y):
@@ -26,7 +26,7 @@ class Camera():
         self.refresh()
 
     def zoom(self, n):
-        self.distance = max(0, min(5, self.distance+n))
+        self.distance = max(0, min(10, self.distance+n))
         self.refresh()
 
     def rotate(self, n):
@@ -62,6 +62,9 @@ def repeating_event(app, key):
 
 
 def single_event(app, key):
+    """
+    These are events that can't be repeated by holding down the key.
+    """
     if key == 'P':
         utilities.screenshot_sequence()
     elif key == 'B':
@@ -72,7 +75,10 @@ def single_event(app, key):
         app.world.clear_selections()
         app.refresh_mesh()
     elif key == 'L':
-        app.world.select_neighbors()
+        app.world.expand_selection()
+        app.refresh_mesh()
+    elif key == 'H':
+        app.world.contract_selection()
         app.refresh_mesh()
 
 
