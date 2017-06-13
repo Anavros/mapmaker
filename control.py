@@ -80,6 +80,15 @@ def single_event(app, key):
     elif key == 'H':
         app.world.contract_selection()
         app.refresh_mesh()
+    elif key == '0':
+        app.world.set_chunk_level(0)
+        app.refresh_mesh()
+    elif key == '1':
+        app.world.set_chunk_level(1)
+        app.refresh_mesh()
+    elif key == '2':
+        app.world.set_chunk_level(2)
+        app.refresh_mesh()
 
 
 def select_camera_relative_movement_direction(key, rotation):

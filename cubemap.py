@@ -63,8 +63,11 @@ class Tile:
 
 class World:
     def __init__(self, n, size):
-        self.tiles = generate(n, size)
-        self.tiles = chunkify(self.tiles)
+        #self.tiles = generate(n, size)
+        self.chunk = {}
+        self.chunk[0] = generate(n, size)
+        self.chunk[1] = chunkify(self.chunk[0], n=3)
+        self.chunk[2] = chunkify(self.chunk[1], n=6)
         self.n = n
         self.size = size
         self.q = 0
@@ -72,6 +75,12 @@ class World:
         self.s = 0
         self.radius = 0
         self.selections = []
+        self.set_chunk_level(0)
+
+    def set_chunk_level(self, n):
+        if n not in self.chunk.keys():
+            return
+        self.tiles = self.chunk[n]
 
     def neighbors(self):
         """
@@ -211,11 +220,16 @@ def generate(n, size):
 
 
 # Centers are 3 away from each other at one level up.
-def chunkify(tiles):
+def chunkify(tiles, n):
     cm = {}
     cm[0, 0, 0] = tiles[0, 0, 0]
-    for key in spiral_traversal(tiles, n=3):
-        cm[key] = tiles[key]
+    for key in spiral_traversal(tiles, n):
+        t = tiles.get(key, None)
+        if t is None: continue
+        replacement = Tile(t.q, t.r, size=t.size)
+        replacement.height = t.height
+        replacement.color = t.color
+        cm[key] = replacement
     return cm
 
 
@@ -259,6 +273,8 @@ def spiral_traversal(tiles, n=1):
     return visits
 
 
+# I can't figure out how to make chunked tiles bigger.
+# If I change size, it makes them bigger, but also spreads them out more.
 def buffers(cm, scale=1.0, highlights=None):
     # This is most likely temporary.
     # So we can show what tile the camera is looking at more clearly.
