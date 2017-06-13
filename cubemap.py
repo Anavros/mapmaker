@@ -64,6 +64,7 @@ class Tile:
 class World:
     def __init__(self, n, size):
         self.tiles = generate(n, size)
+        #self.tiles = chunkify(self.tiles)
         self.n = n
         self.size = size
         self.q = 0
@@ -128,63 +129,63 @@ class World:
             if nearby and not already_included:
                 self.selections.append((q, r, s))
 
-    def move_selections(self, direction):
+    def move_selections(self, direction, n=1):
         new_selections = []
         for key in self.selections:
             q, r, s = key
             if direction == 'north':
-                if s-1 >= -self.n and r+1 <= self.n:
-                    s -= 1
-                    r += 1
+                if s-n >= -self.n and r+n <= self.n:
+                    s -= n
+                    r += n
             elif direction == 'south':
-                if r-1 >= -self.n and s+1 <= self.n:
-                    s += 1
-                    r -= 1
+                if r-n >= -self.n and s+n <= self.n:
+                    s += n
+                    r -= n
             elif direction == 'northeast':
-                if s-1 >= -self.n and q+1 <= self.n:
-                    q += 1
-                    s -= 1
+                if s-n >= -self.n and q+n <= self.n:
+                    q += n
+                    s -= n
             elif direction == 'northwest':
-                if q-1 >= -self.n and r+1 <= self.n:
-                    q -= 1
-                    r += 1
+                if q-n >= -self.n and r+n <= self.n:
+                    q -= n
+                    r += n
             elif direction == 'southeast':
-                if r-1 >= -self.n and q+1 <= self.n:
-                    r -= 1
-                    q += 1
+                if r-n >= -self.n and q+n <= self.n:
+                    r -= n
+                    q += n
             elif direction == 'southwest':
-                if q-1 >= -self.n and s+1 <= self.n:
-                    s += 1
-                    q -= 1
+                if q-n >= -self.n and s+n <= self.n:
+                    s += n
+                    q -= n
             # TODO: remove extra selections if they go off the edge.
             new_selections.append((q, r, s))
         self.selections = new_selections
             
-    def move(self, direction):
+    def move(self, direction, n=1):
         if direction == 'north':
-            if self.s-1 >= -self.n and self.r+1 <= self.n:
-                self.s -= 1
-                self.r += 1
+            if self.s-n >= -self.n and self.r+n <= self.n:
+                self.s -= n
+                self.r += n
         elif direction == 'south':
-            if self.r-1 >= -self.n and self.s+1 <= self.n:
-                self.s += 1
-                self.r -= 1
+            if self.r-n >= -self.n and self.s+n <= self.n:
+                self.s += n
+                self.r -= n
         elif direction == 'northeast':
-            if self.s-1 >= -self.n and self.q+1 <= self.n:
-                self.q += 1
-                self.s -= 1
+            if self.s-n >= -self.n and self.q+n <= self.n:
+                self.q += n
+                self.s -= n
         elif direction == 'northwest':
-            if self.q-1 >= -self.n and self.r+1 <= self.n:
-                self.q -= 1
-                self.r += 1
+            if self.q-n >= -self.n and self.r+n <= self.n:
+                self.q -= n
+                self.r += n
         elif direction == 'southeast':
-            if self.r-1 >= -self.n and self.q+1 <= self.n:
-                self.r -= 1
-                self.q += 1
+            if self.r-n >= -self.n and self.q+n <= self.n:
+                self.r -= n
+                self.q += n
         elif direction == 'southwest':
-            if self.q-1 >= -self.n and self.s+1 <= self.n:
-                self.s += 1
-                self.q -= 1
+            if self.q-n >= -self.n and self.s+n <= self.n:
+                self.s += n
+                self.q -= n
         else:
             raise ValueError("Unknown movement direction: '{}'.".format(direction))
 
@@ -209,6 +210,59 @@ def generate(n, size):
     return cm
 
 
+# Centers are 3 away from each other at one level up.
+def chunkify(tiles):
+    cm = {}
+    cm[0, 0, 0] = tiles[0, 0, 0]
+    for key, tile in tiles.items():
+        if sum([abs(n) for n in key]) % 6 == 0:
+            # The key has (3, -3, 0) in some order.
+            # Or multiples of three.
+            q, r, s = [n//3 for n in key]
+            cm[q, r, s] = tile
+    return cm
+
+
+def fits_resolution(key, r=1):
+    pass
+
+
+def move_coordinates(key, direction, n):
+    movements = {
+        'n' : ( 0, +n, -n),
+        'ne': (+n,  0, -n),
+        'se': (+n, -n,  0),
+        's' : ( 0, -n, +n),
+        'sw': (-n,  0, +n),
+        'nw': (-n, +n,  0),
+    }
+    move = movements[direction]
+    q, r, s = key
+    q += move[0]
+    r += move[1]
+    s += move[2]
+    return (q, r, s)
+
+
+def spiral_traversal(tiles, n=1):
+    visits = [(0, 0, 0)]
+    q = r = s = 0
+    pattern = ['se', 's', 'sw', 'nw', 'n', 'ne']
+    ring = 1
+    while True:
+        q, r, s = move_coordinates((q, r, s), 'n', n)
+        start_of_next_ring = tiles.get((q, r, s), None)
+        if start_of_next_ring is None:
+            break
+        for direction in pattern:
+            for step in range(ring):
+                # This will probably break for n > 1
+                q, r, s = move_coordinates((q, r, s), direction, n)
+                visits.append((q, r, s))
+        ring += 1
+    return visits
+
+
 def buffers(cm, scale=1.0, highlights=None):
     # This is most likely temporary.
     # So we can show what tile the camera is looking at more clearly.
@@ -220,6 +274,8 @@ def buffers(cm, scale=1.0, highlights=None):
     colors = []
     i = 0
     for tile in cm.values():
+
+
         size = tile.size * scale
         width = size * 2
         height = math.sqrt(3) / 2 * width

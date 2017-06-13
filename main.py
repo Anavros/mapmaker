@@ -15,9 +15,14 @@ class Application:
     def __init__(self):
         self.camera = control.Camera()
         self.mesh = parts.Mover()
-        self.world = cubemap.World(14, 0.03)
+        self.world = cubemap.World(2, 0.03)
         self.refresh_mesh()
         self.most_recent_event = time.time()
+        traversal = cubemap.spiral_traversal(self.world.tiles)
+        print(len(self.world.tiles.keys()))
+        print(len(traversal))
+        for key in traversal:
+            print(key)
 
     def refresh_mesh(s):
         #focus = (s.world.q, s.world.r, s.world.s)
@@ -36,7 +41,7 @@ def main(args):
     else:
         app = Application()
     rocket.prep(clear_color=(0.1, 0.1, 0.1))
-    rocket.launch(fps=60)
+    rocket.launch(fps=24)
 
 
 @rocket.attach
@@ -50,6 +55,7 @@ def key_press(key):
     global app
     if key == '':
         return
+    #utilities.screenshot_sequence()
     control.single_event(app, key)
 
 
