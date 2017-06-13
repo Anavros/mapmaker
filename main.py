@@ -6,7 +6,7 @@ import time
 import pickle
 
 import control
-import cubemap
+import world
 import graphics
 import utilities
 import camera
@@ -16,12 +16,13 @@ class Application:
     def __init__(self):
         self.camera = camera.Camera()
         self.mesh = parts.Mover()
-        self.world = cubemap.World(14, 0.03)
+        self.world = world.World(18, 0.03)
+        self.selection = world.Selection(18)
         self.refresh_mesh()
         self.most_recent_event = time.time()
 
     def refresh_mesh(s):
-        highs = [tile.cubal() for tile in s.world.get_all_selected_tiles()]
+        highs = s.selection.get_selected_coordinates()
         bufs = graphics.buffers(s.world, highs)
         s.mesh.vertices, s.mesh.indices, s.mesh.colors = bufs
 
@@ -36,7 +37,7 @@ def main(args):
     else:
         app = Application()
     rocket.prep(clear_color=(0.1, 0.1, 0.1))
-    rocket.launch(fps=24)
+    rocket.launch(fps=30)
 
 
 @rocket.attach

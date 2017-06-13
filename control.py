@@ -1,5 +1,6 @@
 
 import utilities
+import cube
 
 
 def single_event(app, key):
@@ -10,16 +11,8 @@ def single_event(app, key):
         utilities.screenshot_sequence()
     elif key == 'B':
         utilities.save_app(app)
-    elif key == 'M':
-        app.world.select_current_tile()
     elif key == 'N':
-        app.world.clear_selections()
-        app.refresh_mesh()
-    elif key == 'L':
-        app.world.expand_selection()
-        app.refresh_mesh()
-    elif key == 'H':
-        app.world.contract_selection()
+        app.selection.radius = 0
         app.refresh_mesh()
     elif key == '1':
         app.world.downchunk()
@@ -30,22 +23,39 @@ def single_event(app, key):
 
 
 def repeating_event(app, key):
-    if key in 'QWEASDJK':
-        move_by_tile(app.camera, app.world, key)
+    if key in 'QWEASD':
+        move_selection(app.camera, app.world, app.selection, key)
+        app.refresh_mesh()
+    elif key in 'JK':
+        edit_world(key, app.world, app.selection)
         app.refresh_mesh()
     elif key in 'RFIOGT':
-        if key == 'R':
-            app.camera.tilt(-15)
-        elif key == 'F':
-            app.camera.tilt(+15)
-        elif key == 'I':
-            app.camera.rotate(-1)
-        elif key == 'O':
-            app.camera.rotate(+1)
-        elif key == 'G':
-            app.camera.zoom(+1)
-        elif key == 'T':
-            app.camera.zoom(-1)
+        move_camera(key, app.camera)
+    elif key in 'HL':
+        resize_selection(key, app.selection)
+        app.refresh_mesh()
+
+
+def resize_selection(key, selection):
+    if key == 'L':
+        selection.expand()
+    elif key == 'H':
+        selection.contract()
+
+
+def move_camera(key, camera):
+    if key == 'R':
+        camera.tilt(-15)
+    elif key == 'F':
+        camera.tilt(+15)
+    elif key == 'I':
+        camera.rotate(-1)
+    elif key == 'O':
+        camera.rotate(+1)
+    elif key == 'G':
+        camera.zoom(+1)
+    elif key == 'T':
+        camera.zoom(-1)
 
 
 def rotated_movement_direction(key, rotation):
@@ -69,25 +79,25 @@ def rotated_movement_direction(key, rotation):
     return mapping[result]
 
 
-def move_by_tile(camera, world, key):
-    # This updates the world (q, r, s) and the camera (x, y).
-    if key in "QWEASD":
-        direction = rotated_movement_direction(key, camera.rotation)
+def move_selection(camera, world, selection, key):
+    """
+    Move the selection and the camera in one direction according to the pressed key.
+    Accounts for camera rotation in movement direction.
+    """
+    direction = rotated_movement_direction(key, camera.rotation)
 
-        world.move_selection(direction, 1)
+    # This prevents out-of-bounds movement by itself.
+    selection.move(direction)
+    x, y = cube.cartesian(selection.cube(), world.spacing())
+    camera.jump(x, y)
 
-        tile = world.get_current_tile()
-        if tile is not None:
-            # Technically, we don't need to look up the tile here.
-            # It's only a check that we don't move out of bounds.
-            # But we could replace that with a check on the world size, world.n.
-            x, y = world.cartesian_center((world.q, world.r, world.s))
-            camera.jump(x, y)
 
-    elif key in "JK":
-        for tile in world.get_all_selected_tiles():
-            if tile is not None:
-                if key == 'J':
-                    tile.down()
-                elif key == 'K':
-                    tile.up()
+def edit_world(key, world, selection):
+    """
+    Move selected tiles up or down.
+    """
+    for tile in world.get_selected_tiles(selection):
+        if key == 'J':
+            tile.down()
+        elif key == 'K':
+            tile.up()
