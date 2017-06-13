@@ -2,20 +2,24 @@
 import numpy
 import random
 import math
+import cube
 
 
 class Tile:
-    def __init__(self, q, r, size=0.1):
+    def __init__(self, q, r, height=None):
         self.q = q  # axial coordinates
         self.r = r
-        # What is size really used for here?
-        self.size = size
-        self.spacing = 1
-        self.height = random.choice([1, 2, 3])
+        if height is None:
+            self.height = random.choice([1, 2, 3])
+        else:
+            self.height = min(5, max(0, height))
 
     def __repr__(s): return "Tile({}, {})".format(s.q, s.r)
     def  __str__(s): return repr(s)
 
+    # We should honestly just store the coordinates as cubal.
+    # We never use axial, except for the cartesian transform.
+    # We didn't use cubal before because there was a typo in the function.
     def axial(s):
         return s.q, s.r
 
@@ -25,32 +29,19 @@ class Tile:
         z = -x - y
         return x, y, z
 
-    def pixel(s):
-        x = s.size * 3/2 * s.q
-        y = s.size * math.sqrt(3) * (s.r + s.q/2)
-        z = s.size * s.height
-        return (x, y, z)
-
-    def pixel_spaced(s, size):
-        x = size * 3/2 * s.q
-        y = size * math.sqrt(3) * (s.r + s.q/2)
-        z = size * s.height
-        return (x, y, z)
-
     def   up(self): self.height = min(5, self.height + 1)
     def down(self): self.height = max(1, self.height - 1)
 
 
 class World:
     def __init__(self, n, size):
-        #self.tiles = generate(n, size)
         self.chunk = {}
-        self.chunk[0] = generate(n, size)
+        self.chunk[0] = generate(n)
         self.chunk[1] = chunkify(self.chunk[0], n=3)
         self.chunk[2] = chunkify(self.chunk[1], n=6)
         self.level = 0
+        self.tile_size = size
         self.n = n
-        self.size = size
         self.q = 0
         self.r = 0
         self.s = 0
@@ -65,6 +56,24 @@ class World:
     def downchunk(self):
         self.level = max(0, self.level - 1)
         self.tiles = self.chunk[self.level]
+
+    def spacing(self):
+        if self.level > 0:
+            return self.tile_size / (3*self.level)
+        else:
+            return self.tile_size
+
+    def cartesian_center(self, key):
+        """
+        Return (x, y) coordinates of a given (q, r, s) tile's center.
+        Takes chunk level, size, and spacing into account.
+        Doesn't require tile to actually exist.
+        """
+        q, r, s = key
+        spacing = self.spacing()
+        x = spacing * 3/2 * q
+        y = spacing * math.sqrt(3) * (r + q/2)
+        return (x, y)
 
     def neighbors(self):
         """
@@ -126,77 +135,25 @@ class World:
             if nearby and not already_included:
                 self.selections.append((q, r, s))
 
-    def move_selections(self, direction, n=1):
-        new_selections = []
-        for key in self.selections:
-            q, r, s = key
-            if direction == 'north':
-                if s-n >= -self.n and r+n <= self.n:
-                    s -= n
-                    r += n
-            elif direction == 'south':
-                if r-n >= -self.n and s+n <= self.n:
-                    s += n
-                    r -= n
-            elif direction == 'northeast':
-                if s-n >= -self.n and q+n <= self.n:
-                    q += n
-                    s -= n
-            elif direction == 'northwest':
-                if q-n >= -self.n and r+n <= self.n:
-                    q -= n
-                    r += n
-            elif direction == 'southeast':
-                if r-n >= -self.n and q+n <= self.n:
-                    r -= n
-                    q += n
-            elif direction == 'southwest':
-                if q-n >= -self.n and s+n <= self.n:
-                    s += n
-                    q -= n
-            # TODO: restore extra selections if they go off the edge and come back.
-            new_selections.append((q, r, s))
-        self.selections = new_selections
-            
-    def move(self, direction, n=1):
-        if direction == 'north':
-            if self.s-n >= -self.n and self.r+n <= self.n:
-                self.s -= n
-                self.r += n
-        elif direction == 'south':
-            if self.r-n >= -self.n and self.s+n <= self.n:
-                self.s += n
-                self.r -= n
-        elif direction == 'northeast':
-            if self.s-n >= -self.n and self.q+n <= self.n:
-                self.q += n
-                self.s -= n
-        elif direction == 'northwest':
-            if self.q-n >= -self.n and self.r+n <= self.n:
-                self.q -= n
-                self.r += n
-        elif direction == 'southeast':
-            if self.r-n >= -self.n and self.q+n <= self.n:
-                self.r -= n
-                self.q += n
-        elif direction == 'southwest':
-            if self.q-n >= -self.n and self.s+n <= self.n:
-                self.s += n
-                self.q -= n
-        else:
-            raise ValueError("Unknown movement direction: '{}'.".format(direction))
+    def move_selection(self, direction, steps=1):
+        """
+        Shift all selections one or more steps in one direction.
+        Directions include n, s, ne, nw, se, sw.
+        Will not move selections outside of map boundaries.
+        """
+        center = (self.q, self.r, self.s)
+        if cube.in_bounds_after_shift(center, self.n, direction, steps):
+            self.q, self.r, self.s = cube.shift(center, direction, steps)
+            new_selections = []
+            for key in self.selections:
+                # Extra selections are allowed to move outside the map, but they should
+                # still focus around the center.
+                q, r, s = cube.shift(key, direction, steps)
+                new_selections.append((q, r, s))
+            self.selections = new_selections
 
 
-class Selection:
-    def __init__(self):
-        self.q = 0
-        self.r = 0
-        self.s = 0
-        self.radius = 0
-        self.selections = []
-
-
-def generate(n, size):
+def generate(n):
     # There's got to be a better way to do this.
     # We could probably do it in rings, like the spiral algorithm.
     cm = {}
@@ -204,7 +161,7 @@ def generate(n, size):
         for r in range(-n, n+1):
             for s in range(-n, n+1):
                 if q+r+s == 0:
-                    cm[q, r, s] = Tile(q, r, size=size)
+                    cm[q, r, s] = Tile(q, r)
     return cm
 
 
@@ -212,46 +169,8 @@ def generate(n, size):
 def chunkify(tiles, n):
     cm = {}
     cm[0, 0, 0] = tiles[0, 0, 0]
-    for key in spiral_traversal(tiles, n):
+    for key in cube.spiral_traversal(tiles, n):
         t = tiles.get(key, None)
         if t is None: continue
-        replacement = Tile(t.q, t.r, size=t.size)
-        replacement.height = t.height
-        cm[key] = replacement
+        cm[key] = t
     return cm
-
-
-def move_coordinates(key, direction, n):
-    movements = {
-        'n' : ( 0, +n, -n),
-        'ne': (+n,  0, -n),
-        'se': (+n, -n,  0),
-        's' : ( 0, -n, +n),
-        'sw': (-n,  0, +n),
-        'nw': (-n, +n,  0),
-    }
-    move = movements[direction]
-    q, r, s = key
-    q += move[0]
-    r += move[1]
-    s += move[2]
-    return (q, r, s)
-
-
-def spiral_traversal(tiles, n=1):
-    visits = [(0, 0, 0)]
-    q = r = s = 0
-    pattern = ['se', 's', 'sw', 'nw', 'n', 'ne']
-    ring = 1
-    while True:
-        q, r, s = move_coordinates((q, r, s), 'n', n)
-        start_of_next_ring = tiles.get((q, r, s), None)
-        if start_of_next_ring is None:
-            break
-        for direction in pattern:
-            for step in range(ring):
-                # This will probably break for n > 1
-                q, r, s = move_coordinates((q, r, s), direction, n)
-                visits.append((q, r, s))
-        ring += 1
-    return visits

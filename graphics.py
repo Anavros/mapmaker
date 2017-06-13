@@ -4,7 +4,7 @@ from vispy.gloo import IndexBuffer
 import math
 
 
-program = rocket.program('v.glsl', 'f.glsl')
+program = rocket.program('shaders/v.glsl', 'shaders/f.glsl')
 
 
 colormap = {
@@ -16,22 +16,18 @@ colormap = {
 }
 
 
-def buffers(tilemap, size, resolution_level, highlights):
+def buffers(world, highlights):
     vertices = []
     indices = []
     colors = []
     i = 0
 
-    if resolution_level > 0:
-        spacing = size / (3*resolution_level)
-    else:
-        spacing = size
-
-    for tile in tilemap.values():
+    for tile in world.tiles.values():
+        size = world.tile_size
         width = size * 2
         height = math.sqrt(3) / 2 * width
         ver = height / 2
-        hor = width / 2
+        hor = size
         half = hor/2
 
         # Variable prefixes:
@@ -42,21 +38,22 @@ def buffers(tilemap, size, resolution_level, highlights):
         ic, ie, iw, ine, inw, ise, isw = [i + n for n in range(7)]
         jc, je, jw, jne, jnw, jse, jsw = [i + n + 7 for n in range(7)]
 
-        vc = tile.pixel_spaced(spacing)
-        ve =  (vc[0]+hor, vc[1], vc[2])
-        vw =  (vc[0]-hor, vc[1], vc[2])
-        vne = (vc[0]+half, vc[1]+ver, vc[2])
-        vnw = (vc[0]-half, vc[1]+ver, vc[2])
-        vse = (vc[0]+half, vc[1]-ver, vc[2])
-        vsw = (vc[0]-half, vc[1]-ver, vc[2])
-
-        gc =  (vc[0], vc[1], 0)
-        ge =  (vc[0]+hor, vc[1], 0)
-        gw =  (vc[0]-hor, vc[1], 0)
-        gne = (vc[0]+half, vc[1]+ver, 0)
-        gnw = (vc[0]-half, vc[1]+ver, 0)
-        gse = (vc[0]+half, vc[1]-ver, 0)
-        gsw = (vc[0]-half, vc[1]-ver, 0)
+        x, y = world.cartesian_center(tile.cubal())
+        z = tile.height * world.spacing()
+        vc =  (x, y, z)
+        ve =  (x+hor, y, z)
+        vw =  (x-hor, y, z)
+        vne = (x+half, y+ver, z)
+        vnw = (x-half, y+ver, z)
+        vse = (x+half, y-ver, z)
+        vsw = (x-half, y-ver, z)
+        gc =  (x, y, 0)
+        ge =  (x+hor, y, 0)
+        gw =  (x-hor, y, 0)
+        gne = (x+half, y+ver, 0)
+        gnw = (x-half, y+ver, 0)
+        gse = (x+half, y-ver, 0)
+        gsw = (x-half, y-ver, 0)
 
         vertices.extend([
             vc, ve, vw, vne, vnw, vse, vsw,

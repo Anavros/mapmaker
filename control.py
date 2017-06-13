@@ -59,12 +59,12 @@ def rotated_movement_direction(key, rotation):
     index = directions.index(key)
     result = directions[(index+rotation)%6]
     mapping = {
-        'W': 'north',
-        'E': 'northeast',
-        'Q': 'northwest',
-        'S': 'south',
-        'D': 'southeast',
-        'A': 'southwest',
+        'W': 'n',
+        'E': 'ne',
+        'Q': 'nw',
+        'S': 's',
+        'D': 'se',
+        'A': 'sw',
     }
     return mapping[result]
 
@@ -74,13 +74,14 @@ def move_by_tile(camera, world, key):
     if key in "QWEASD":
         direction = rotated_movement_direction(key, camera.rotation)
 
-        n = 1
-        world.move(direction, n)
-        world.move_selections(direction, n)
+        world.move_selection(direction, 1)
 
         tile = world.get_current_tile()
         if tile is not None:
-            x, y, z = tile.pixel()
+            # Technically, we don't need to look up the tile here.
+            # It's only a check that we don't move out of bounds.
+            # But we could replace that with a check on the world size, world.n.
+            x, y = world.cartesian_center((world.q, world.r, world.s))
             camera.jump(x, y)
 
     elif key in "JK":

@@ -22,7 +22,7 @@ class Application:
 
     def refresh_mesh(s):
         highs = [tile.cubal() for tile in s.world.get_all_selected_tiles()]
-        bufs = graphics.buffers(s.world.tiles, 0.03, s.world.level, highs)
+        bufs = graphics.buffers(s.world, highs)
         s.mesh.vertices, s.mesh.indices, s.mesh.colors = bufs
 
 
