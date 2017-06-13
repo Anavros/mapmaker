@@ -9,27 +9,21 @@ import control
 import cubemap
 import graphics
 import utilities
+import camera
 
 
 class Application:
     def __init__(self):
-        self.camera = control.Camera()
+        self.camera = camera.Camera()
         self.mesh = parts.Mover()
         self.world = cubemap.World(14, 0.03)
         self.refresh_mesh()
         self.most_recent_event = time.time()
 
-#        traversal = cubemap.spiral_traversal(self.world.tiles, n=3)
-#        for key in traversal:
-#            print(key)
-#        print(len(self.world.tiles.keys()))
-#        print(len(traversal))
-
     def refresh_mesh(s):
-        #focus = (s.world.q, s.world.r, s.world.s)
-        #highs = [focus]
         highs = [tile.cubal() for tile in s.world.get_all_selected_tiles()]
-        s.mesh.vertices, s.mesh.indices, s.mesh.colors = cubemap.buffers(s.world.tiles, highlights=highs)
+        bufs = graphics.buffers(s.world.tiles, 0.03, s.world.level, highs)
+        s.mesh.vertices, s.mesh.indices, s.mesh.colors = bufs
 
 
 app = None
@@ -38,7 +32,7 @@ app = None
 def main(args):
     global app
     if args.pickle:
-        app = pickle.load(open(args.pickle, 'rb'))
+        app = utilities.load_app(args.pickle)
     else:
         app = Application()
     rocket.prep(clear_color=(0.1, 0.1, 0.1))

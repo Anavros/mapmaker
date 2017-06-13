@@ -1,45 +1,32 @@
 
-import rocket
-import rocket.aux as parts
 import utilities
-import pickle # TODO: move saving and loading to utilities.
 
 
-class Camera():
-    def __init__(self):
-        self.view = parts.View(fov=30, near=0.1)
-        self.x = 0
-        self.y = 0
-        self.angle = 30
-        self.rotation = 0
-        self.height = 1
-        self.distance = 0
-        self.refresh()
-
-    def tilt(self, n):
-        self.angle = max(0, min(45, self.angle+n))
-        self.refresh()
-
-    def jump(self, x, y):
-        self.x = x
-        self.y = y
-        self.refresh()
-
-    def zoom(self, n):
-        self.distance = max(0, min(10, self.distance+n))
-        self.refresh()
-
-    def rotate(self, n):
-        self.rotation = (self.rotation + n) % 6
-        self.refresh()
-
-    def refresh(self):
-        self.view.reset()
-        self.view.rotate(z = self.rotation*60)
-        self.view.move(-self.x, -self.y, -self.height, absolute=True)
-        self.view.rotate(y = -self.angle)
-        self.view.move(y = self.angle/60)
-        self.view.move(z = -(self.distance/5))
+def single_event(app, key):
+    """
+    These are events that can't be repeated by holding down the key.
+    """
+    if key == 'P':
+        utilities.screenshot_sequence()
+    elif key == 'B':
+        utilities.save_app(app)
+    elif key == 'M':
+        app.world.select_current_tile()
+    elif key == 'N':
+        app.world.clear_selections()
+        app.refresh_mesh()
+    elif key == 'L':
+        app.world.expand_selection()
+        app.refresh_mesh()
+    elif key == 'H':
+        app.world.contract_selection()
+        app.refresh_mesh()
+    elif key == '1':
+        app.world.downchunk()
+        app.refresh_mesh()
+    elif key == '2':
+        app.world.upchunk()
+        app.refresh_mesh()
 
 
 def repeating_event(app, key):
@@ -61,37 +48,7 @@ def repeating_event(app, key):
             app.camera.zoom(-1)
 
 
-def single_event(app, key):
-    """
-    These are events that can't be repeated by holding down the key.
-    """
-    if key == 'P':
-        utilities.screenshot_sequence()
-    elif key == 'B':
-        pickle.dump(app, open('world.pickle', 'wb'))
-    elif key == 'M':
-        app.world.select_current_tile()
-    elif key == 'N':
-        app.world.clear_selections()
-        app.refresh_mesh()
-    elif key == 'L':
-        app.world.expand_selection()
-        app.refresh_mesh()
-    elif key == 'H':
-        app.world.contract_selection()
-        app.refresh_mesh()
-    elif key == '0':
-        app.world.set_chunk_level(0)
-        app.refresh_mesh()
-    elif key == '1':
-        app.world.set_chunk_level(1)
-        app.refresh_mesh()
-    elif key == '2':
-        app.world.set_chunk_level(2)
-        app.refresh_mesh()
-
-
-def select_camera_relative_movement_direction(key, rotation):
+def rotated_movement_direction(key, rotation):
     """
     Convert a keypress into a compass direction, adjusting for camera rotation.
     So pressing 'w' will move up, regardless of where the camera is facing,
@@ -113,13 +70,15 @@ def select_camera_relative_movement_direction(key, rotation):
 
 
 def move_by_tile(camera, world, key):
+    # This updates the world (q, r, s) and the camera (x, y).
     if key in "QWEASD":
-        direction = select_camera_relative_movement_direction(key, camera.rotation)
-        n = 3
+        direction = rotated_movement_direction(key, camera.rotation)
+
+        n = 1
         world.move(direction, n)
         world.move_selections(direction, n)
+
         tile = world.get_current_tile()
-        print(tile.cubal())
         if tile is not None:
             x, y, z = tile.pixel()
             camera.jump(x, y)

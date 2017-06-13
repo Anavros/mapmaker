@@ -5,39 +5,21 @@ import math
 
 
 class Tile:
-    # Using axial coordinates.
     def __init__(self, q, r, size=0.1):
-        self.q = q
+        self.q = q  # axial coordinates
         self.r = r
+        # What is size really used for here?
         self.size = size
+        self.spacing = 1
         self.height = random.choice([1, 2, 3])
-        self.colormap = {
-            1 : (0.2, 0.4, 0.6),
-            2 : (0.8, 0.6, 0.4),
-            3 : (0.7, 0.5, 0.3),
-            4 : (0.6, 0.4, 0.2),
-            5 : (0.5, 0.3, 0.1),
-        }
-        #self.color = numpy.random.random(3)
-        self.set_color(self.colormap[self.height])
-        self.highlight = False
 
-        # Temporary for the game of life.
-        self.alive = random.choice([True, False])
-
-    def __repr__(s):
-        return "Tile({}, {})".format(s.q, s.r)
-
-    def __str__(s):
-        return repr(s)
+    def __repr__(s): return "Tile({}, {})".format(s.q, s.r)
+    def  __str__(s): return repr(s)
 
     def axial(s):
         return s.q, s.r
 
     def cubal(s):
-        # This doesn't work right?
-        # Or the tile coordinates are not being set right.
-        # These don't match the map indices.
         x = s.q
         y = s.r
         z = -x - y
@@ -49,16 +31,14 @@ class Tile:
         z = s.size * s.height
         return (x, y, z)
 
-    def set_color(s, color):
-        s.color = numpy.array(color)
+    def pixel_spaced(s, size):
+        x = size * 3/2 * s.q
+        y = size * math.sqrt(3) * (s.r + s.q/2)
+        z = size * s.height
+        return (x, y, z)
 
-    def up(self):
-        self.height = min(5, self.height + 1)
-        self.set_color(self.colormap[self.height])
-
-    def down(self):
-        self.height = max(1, self.height - 1)
-        self.set_color(self.colormap[self.height])
+    def   up(self): self.height = min(5, self.height + 1)
+    def down(self): self.height = max(1, self.height - 1)
 
 
 class World:
@@ -68,6 +48,7 @@ class World:
         self.chunk[0] = generate(n, size)
         self.chunk[1] = chunkify(self.chunk[0], n=3)
         self.chunk[2] = chunkify(self.chunk[1], n=6)
+        self.level = 0
         self.n = n
         self.size = size
         self.q = 0
@@ -75,12 +56,15 @@ class World:
         self.s = 0
         self.radius = 0
         self.selections = []
-        self.set_chunk_level(0)
+        self.tiles = self.chunk[self.level]
 
-    def set_chunk_level(self, n):
-        if n not in self.chunk.keys():
-            return
-        self.tiles = self.chunk[n]
+    def upchunk(self):
+        self.level = min(2, self.level + 1)
+        self.tiles = self.chunk[self.level]
+
+    def downchunk(self):
+        self.level = max(0, self.level - 1)
+        self.tiles = self.chunk[self.level]
 
     def neighbors(self):
         """
@@ -101,7 +85,11 @@ class World:
         return self.tiles.get((self.q, self.r, self.s), None)
 
     def get_all_selected_tiles(self):
-        tiles = [self.get_current_tile()]
+        current = self.get_current_tile()
+        if current is None:  # problem with spacing chunks
+            tiles = []
+        else:
+            tiles = [current]
         for key in self.selections:
             tile = self.tiles.get(key, None)
             if tile is not None and tile not in tiles:
@@ -166,7 +154,7 @@ class World:
                 if q-n >= -self.n and s+n <= self.n:
                     s += n
                     q -= n
-            # TODO: remove extra selections if they go off the edge.
+            # TODO: restore extra selections if they go off the edge and come back.
             new_selections.append((q, r, s))
         self.selections = new_selections
             
@@ -210,6 +198,7 @@ class Selection:
 
 def generate(n, size):
     # There's got to be a better way to do this.
+    # We could probably do it in rings, like the spiral algorithm.
     cm = {}
     for q in range(-n, n+1):
         for r in range(-n, n+1):
@@ -228,13 +217,8 @@ def chunkify(tiles, n):
         if t is None: continue
         replacement = Tile(t.q, t.r, size=t.size)
         replacement.height = t.height
-        replacement.color = t.color
         cm[key] = replacement
     return cm
-
-
-def fits_resolution(key, r=1):
-    pass
 
 
 def move_coordinates(key, direction, n):
@@ -271,123 +255,3 @@ def spiral_traversal(tiles, n=1):
                 visits.append((q, r, s))
         ring += 1
     return visits
-
-
-# I can't figure out how to make chunked tiles bigger.
-# If I change size, it makes them bigger, but also spreads them out more.
-def buffers(cm, scale=1.0, highlights=None):
-    # This is most likely temporary.
-    # So we can show what tile the camera is looking at more clearly.
-    if highlights is None:
-        highlights = []
-
-    vertices = []
-    indices = []
-    colors = []
-    i = 0
-    for tile in cm.values():
-        size = tile.size * scale
-        width = size * 2
-        height = math.sqrt(3) / 2 * width
-        ver = height / 2
-        hor = width / 2
-        half = hor/2
-
-        # Variable prefixes:
-        # i = index
-        # v = vertex
-        # g = ground vertex (z=0)
-        # j = ground index
-        ic, ie, iw, ine, inw, ise, isw = [i + n for n in range(7)]
-        jc, je, jw, jne, jnw, jse, jsw = [i + n + 7 for n in range(7)]
-
-        vc = tile.pixel()
-        ve =  (vc[0]+hor, vc[1], vc[2])
-        vw =  (vc[0]-hor, vc[1], vc[2])
-        vne = (vc[0]+half, vc[1]+ver, vc[2])
-        vnw = (vc[0]-half, vc[1]+ver, vc[2])
-        vse = (vc[0]+half, vc[1]-ver, vc[2])
-        vsw = (vc[0]-half, vc[1]-ver, vc[2])
-
-        gc =  (vc[0], vc[1], 0)
-        ge =  (vc[0]+hor, vc[1], 0)
-        gw =  (vc[0]-hor, vc[1], 0)
-        gne = (vc[0]+half, vc[1]+ver, 0)
-        gnw = (vc[0]-half, vc[1]+ver, 0)
-        gse = (vc[0]+half, vc[1]-ver, 0)
-        gsw = (vc[0]-half, vc[1]-ver, 0)
-
-        vertices.extend([
-            vc, ve, vw, vne, vnw, vse, vsw,
-            gc, ge, gw, gne, gnw, gse, gsw,
-        ])
-
-        indices.extend([
-            # Top Face
-            ic, ie, ine,
-            ic, ine, inw,
-            ic, inw, iw,
-            ic, iw, isw,
-            ic, isw, ise,
-            ic, ise, ie,
-
-            # Bottom Face
-            jc, je, jne,
-            jc, jne, jnw,
-            jc, jnw, jw,
-            jc, jw, jsw,
-            jc, jsw, jse,
-            jc, jse, je,
-
-            # Walls
-            ie, ine, jne,
-            ie, jne, je,
-            ine, inw, jnw,
-            ine, jnw, jne,
-            inw, iw, jw,
-            inw, jw, jnw,
-            iw, isw, jsw,
-            iw, jsw, jw,
-            isw, ise, jse,
-            isw, jse, jsw,
-            ise, ie, je,
-            ise, je, jse,
-        ])
-
-        if tile.cubal() in highlights:
-            colors.extend([tile.color+0.1]*7)
-            colors.extend([tile.color+0.3]*7)
-        else:
-            colors.extend([tile.color]*7)
-            colors.extend([tile.color-0.2]*7)
-        i += 14
-    return vertices, indices, colors
-
-
-def test_neighbors(cm, x, y, z):
-    cm[x, y, z].color = numpy.array((0, 0, 0))
-    for tile in neighbors(cm, x, y, z):
-        if tile:
-            tile.color = numpy.array((1, 1, 1))
-
-
-def test_cells():
-    global cm
-    for tile in cm.values():
-        others = neighbors(cm, *tile.cubal())
-        count = sum(1 for cell in others if (cell is not None) and cell.alive)
-
-        # These changes don't happen all at once.
-        # So one tile might turn on in the middle of another check or something.
-        # Also, remember that there can only be up to 6 neighbors for hexes.
-        if tile.alive and (count not in [2, 3]):
-            tile.alive = False
-        elif (not tile.alive) and (count in [3, 4, 5, 6]):
-            tile.alive = True
-
-        if tile.alive:
-            tile.color = numpy.array((1, 1, 1))
-            tile.height = 2
-        else:
-            tile.color = numpy.array((0, 0, 0))
-            tile.height = 1
