@@ -106,10 +106,11 @@ def select_camera_relative_movement_direction(key, rotation):
 def move_by_tile(camera, world, key):
     if key in "QWEASD":
         direction = select_camera_relative_movement_direction(key, camera.rotation)
-        n = 1
+        n = 3
         world.move(direction, n)
         world.move_selections(direction, n)
         tile = world.get_current_tile()
+        print(tile.cubal())
         if tile is not None:
             x, y, z = tile.pixel()
             camera.jump(x, y)

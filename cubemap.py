@@ -64,7 +64,7 @@ class Tile:
 class World:
     def __init__(self, n, size):
         self.tiles = generate(n, size)
-        #self.tiles = chunkify(self.tiles)
+        self.tiles = chunkify(self.tiles)
         self.n = n
         self.size = size
         self.q = 0
@@ -214,12 +214,8 @@ def generate(n, size):
 def chunkify(tiles):
     cm = {}
     cm[0, 0, 0] = tiles[0, 0, 0]
-    for key, tile in tiles.items():
-        if sum([abs(n) for n in key]) % 6 == 0:
-            # The key has (3, -3, 0) in some order.
-            # Or multiples of three.
-            q, r, s = [n//3 for n in key]
-            cm[q, r, s] = tile
+    for key in spiral_traversal(tiles, n=3):
+        cm[key] = tiles[key]
     return cm
 
 
@@ -274,8 +270,6 @@ def buffers(cm, scale=1.0, highlights=None):
     colors = []
     i = 0
     for tile in cm.values():
-
-
         size = tile.size * scale
         width = size * 2
         height = math.sqrt(3) / 2 * width

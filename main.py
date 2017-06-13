@@ -15,14 +15,15 @@ class Application:
     def __init__(self):
         self.camera = control.Camera()
         self.mesh = parts.Mover()
-        self.world = cubemap.World(2, 0.03)
+        self.world = cubemap.World(49, 0.03)
         self.refresh_mesh()
         self.most_recent_event = time.time()
-        traversal = cubemap.spiral_traversal(self.world.tiles)
-        print(len(self.world.tiles.keys()))
-        print(len(traversal))
+
+        traversal = cubemap.spiral_traversal(self.world.tiles, n=3)
         for key in traversal:
             print(key)
+        print(len(self.world.tiles.keys()))
+        print(len(traversal))
 
     def refresh_mesh(s):
         #focus = (s.world.q, s.world.r, s.world.s)
